@@ -1,64 +1,54 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-
-// Temporary Mock Data (Jab tak Supabase live data connect nahi karte)
-const MOCK_DOCTORS = [
-  {
-    id: "1012345678",
-    name: "Dr. Sarah Ahmed",
-    specialty: "Cardiology",
-    city: "Chicago",
-    state: "IL",
-    npi: "1012345678",
-  },
-  {
-    id: "1023456789",
-    name: "Dr. Michael Chen",
-    specialty: "Pediatrics",
-    city: "Houston",
-    state: "TX",
-    npi: "1023456789",
-  },
-  {
-    id: "1034567890",
-    name: "Dr. Fatima Ali",
-    specialty: "Dermatology",
-    city: "New York",
-    state: "NY",
-    npi: "1034567890",
-  },
-  {
-    id: "1045678901",
-    name: "Dr. James Wilson",
-    specialty: "Cardiology",
-    city: "Dallas",
-    state: "TX",
-    npi: "1045678901",
-  },
-];
+import { supabase } from "@/lib/supabase";
 
 export default function Home() {
   const [query, setQuery] = useState("");
   const [selectedSpecialty, setSelectedSpecialty] = useState("");
+  const [doctors, setDoctors] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Filtering Logic
-  const filteredDoctors = MOCK_DOCTORS.filter((doc) => {
-    const matchesQuery =
-      doc.name.toLowerCase().includes(query.toLowerCase()) ||
-      doc.city.toLowerCase().includes(query.toLowerCase()) ||
-      doc.npi.includes(query);
-    const matchesSpecialty = selectedSpecialty
-      ? doc.specialty === selectedSpecialty
-      : true;
+  useEffect(() => {
+    async function fetchDoctors() {
+      setLoading(true);
 
-    return matchesQuery && matchesSpecialty;
+      let dbQuery = supabase.from("doctors").select("*");
+
+      if (selectedSpecialty) {
+        dbQuery = dbQuery.eq("specialty", selectedSpecialty);
+      }
+
+      const { data, error } = await dbQuery;
+
+      if (error) {
+        console.error("Supabase Error:", error.message);
+      } else {
+        setDoctors(data || []);
+      }
+      setLoading(false);
+    }
+
+    fetchDoctors();
+  }, [selectedSpecialty]);
+
+  // Front-end Search Filtering
+  const filteredDoctors = doctors.filter((doc) => {
+    const searchLower = query.toLowerCase();
+    const fullName = `${doc.first_name || ""} ${doc.last_name || ""}`.toLowerCase();
+    const city = (doc.city || "").toLowerCase();
+    const npi = doc.npi_number || doc.npi || "";
+
+    return (
+      fullName.includes(searchLower) ||
+      city.includes(searchLower) ||
+      npi.includes(query)
+    );
   });
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
-      {/* Hero Header */}
       <div className="text-center mb-10">
         <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-3">
           Find Healthcare Providers & NPI Data
@@ -68,7 +58,6 @@ export default function Home() {
         </p>
       </div>
 
-      {/* Search & Filter Bar */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 mb-8">
         <input
           type="text"
@@ -90,36 +79,44 @@ export default function Home() {
         </select>
       </div>
 
-      {/* Search Results Grid */}
-      <div className="grid md:grid-cols-2 gap-4">
-        {filteredDoctors.length > 0 ? (
-          filteredDoctors.map((doc) => (
-            <div
-              key={doc.id}
-              className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm hover:border-blue-300 transition-colors flex justify-between items-center"
-            >
-              <div>
-                <h3 className="font-semibold text-lg text-slate-900">{doc.name}</h3>
-                <p className="text-sm text-blue-600 font-medium">{doc.specialty}</p>
-                <p className="text-xs text-slate-500 mt-1">
-                  📍 {doc.city}, {doc.state} | NPI: <span className="font-mono">{doc.npi}</span>
-                </p>
-              </div>
-
-              <Link
-                href={`/doctor/${doc.id}`}
-                className="px-3.5 py-2 bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 rounded-lg text-xs font-semibold transition-colors shrink-0"
+      {loading ? (
+        <div className="text-center py-12 text-slate-500 font-medium">
+          Loading doctors from database...
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-4">
+          {filteredDoctors.length > 0 ? (
+            filteredDoctors.map((doc) => (
+              <div
+                key={doc.id || doc.npi_number}
+                className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm hover:border-blue-300 transition-colors flex justify-between items-center"
               >
-                View Profile →
-              </Link>
+                <div>
+                  <h3 className="font-semibold text-lg text-slate-900">
+                    Dr. {doc.first_name} {doc.last_name}
+                  </h3>
+                  <p className="text-sm text-blue-600 font-medium">{doc.specialty || "General Practice"}</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    📍 {doc.city || "N/A"}, {doc.state || "N/A"} | NPI:{" "}
+                    <span className="font-mono">{doc.npi_number || doc.npi}</span>
+                  </p>
+                </div>
+
+                <Link
+                  href={`/doctor/${doc.id || doc.npi_number}`}
+                  className="px-3.5 py-2 bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 rounded-lg text-xs font-semibold transition-colors shrink-0"
+                >
+                  View Profile →
+                </Link>
+              </div>
+            ))
+          ) : (
+            <div className="col-span-2 text-center py-10 text-slate-500">
+              No doctors found matching your criteria.
             </div>
-          ))
-        ) : (
-          <div className="col-span-2 text-center py-10 text-slate-500">
-            No doctors found matching your criteria.
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
