@@ -2,515 +2,600 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-
-// Extended Medical & General Auto-Correction Dictionary
-const DICTIONARY: Record<string, string> = {
-  stastionry: "stationery",
-  stationery: "stationery",
-  dector: "doctor",
-  docter: "doctor",
-  clenic: "clinic",
-  appoinment: "appointment",
-  prescripction: "prescription",
-  medisin: "medicine",
-  hospitall: "hospital",
-  insurence: "insurance",
-  recepion: "reception",
-  lethead: "letterhead",
-  fone: "phone",
-  infomation: "information",
-  conctact: "contact",
-  help: "help",
-};
+import Link from "next/link";
 
 export default function Home() {
+  const [user, setUser] = useState<any>(null);
   const [doctors, setDoctors] = useState<any[]>([]);
-  const [search, setSearch] = useState("");
-  const [selectedSpecialty, setSelectedSpecialty] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // Modal & Contact Form States
-  const [selectedDoctor, setSelectedDoctor] = useState<any | null>(null);
-  const [isContacting, setIsContacting] = useState(false);
-  const [contactSubmitted, setContactSubmitted] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    inquiryType: "General Clinical Appointment",
-    message: "",
-  });
+  // Favorites State
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState<boolean>(false);
 
-  // Spell Check Suggestions State
-  const [suggestions, setSuggestions] = useState<{ wrong: string; correct: string }[]>([]);
+  // Search Inputs
+  const [searchName, setSearchName] = useState<string>("");
+  const [searchCity, setSearchCity] = useState<string>("");
+  const [searchState, setSearchState] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
-  // Pagination States
-  const [currentPage, setCurrentPage] = useState(1);
+  // Pagination
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 12;
 
-  // Saved Doctors State
-  const [savedDoctorIds, setSavedDoctorIds] = useState<string[]>([]);
-  const [showSavedOnly, setShowSavedOnly] = useState(false);
+  // Separate Modal States
+  const [viewDoctorProfile, setViewDoctorProfile] = useState<any>(null);
+  const [selectedDoctorForInquiry, setSelectedDoctorForInquiry] = useState<any>(null);
+
+  // Inquiry Form States
+  const [inquiryType, setInquiryType] = useState<string>("General Query");
+  const [message, setMessage] = useState<string>("");
+  const [senderName, setSenderName] = useState<string>("");
+  const [senderEmail, setSenderEmail] = useState<string>("");
+  const [submittingInquiry, setSubmittingInquiry] = useState<boolean>(false);
+  const [inquirySuccess, setInquirySuccess] = useState<string>("");
 
   useEffect(() => {
-    const saved = localStorage.getItem("mdscout_saved_doctors");
-    if (saved) {
+    // Load local saved favorites
+    const savedFavs = localStorage.getItem("mdscout_favs");
+    if (savedFavs) {
       try {
-        setSavedDoctorIds(JSON.parse(saved));
+        setFavorites(JSON.parse(savedFavs));
       } catch (e) {}
     }
-  }, []);
 
-  const toggleSaveDoctor = (docId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    let updatedSaved: string[];
-    if (savedDoctorIds.includes(docId)) {
-      updatedSaved = savedDoctorIds.filter((id) => id !== docId);
-    } else {
-      updatedSaved = [...savedDoctorIds, docId];
+    async function getUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUser(user);
+        setSenderEmail(user.email || "");
+        setSenderName(user.user_metadata?.full_name || "");
+      }
     }
-    setSavedDoctorIds(updatedSaved);
-    localStorage.setItem("mdscout_saved_doctors", JSON.stringify(updatedSaved));
-  };
+    getUser();
 
-  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        setSenderEmail(u.email || "");
+        setSenderName(u.user_metadata?.full_name || "");
+      }
+    });
+
     async function fetchDoctors() {
+      setLoading(true);
       const { data, error } = await supabase.from("doctors").select("*");
       if (!error && data) setDoctors(data);
       setLoading(false);
     }
+
     fetchDoctors();
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
+  // Toggle Favorite Function
+  const toggleFavorite = (docId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    let updatedFavs: string[];
+    if (favorites.includes(docId)) {
+      updatedFavs = favorites.filter((id) => id !== docId);
+    } else {
+      updatedFavs = [...favorites, docId];
+    }
+    setFavorites(updatedFavs);
+    localStorage.setItem("mdscout_favs", JSON.stringify(updatedFavs));
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
+
+  const handleInquirySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDoctorForInquiry) return;
+    setSubmittingInquiry(true);
+    setInquirySuccess("");
+
+    try {
+      const docName = selectedDoctorForInquiry.first_name && selectedDoctorForInquiry.last_name
+        ? `Dr. ${selectedDoctorForInquiry.first_name} ${selectedDoctorForInquiry.last_name}`
+        : selectedDoctorForInquiry.name || "Doctor";
+
+      const { error } = await supabase.from("inquiries").insert({
+        doctor_id: String(selectedDoctorForInquiry.id),
+        doctor_name: docName,
+        sender_name: senderName || "Patient / Visitor",
+        sender_email: senderEmail,
+        inquiry_type: inquiryType,
+        message: message,
+      });
+
+      if (error) throw error;
+
+      setInquirySuccess("Your inquiry has been sent successfully!");
+      setMessage("");
+      setTimeout(() => {
+        setSelectedDoctorForInquiry(null);
+        setInquirySuccess("");
+      }, 1800);
+    } catch (err: any) {
+      alert("Error sending inquiry: " + err.message);
+    } finally {
+      setSubmittingInquiry(false);
+    }
+  };
+
+  // Advanced Filtering
   const filteredDoctors = doctors.filter((doc) => {
-    const docId = String(doc.id || doc.npi_number);
-    const fullName = `${doc.first_name} ${doc.last_name}`.toLowerCase();
+    const docIdStr = String(doc.id);
+    if (showOnlyFavorites && !favorites.includes(docIdStr)) {
+      return false;
+    }
 
-    const matchesSearch =
-      fullName.includes(search.toLowerCase()) ||
-      doc.city?.toLowerCase().includes(search.toLowerCase()) ||
-      doc.npi_number?.includes(search);
+    const docFirstName = doc.first_name || "";
+    const docLastName = doc.last_name || "";
+    const docFullName = `${docFirstName} ${docLastName}`.toLowerCase();
+    const docSpec = (doc.specialty || doc.specialization || "").toLowerCase();
+    const docCity = (doc.city || doc.location || doc.address || "").toLowerCase();
+    const docState = (doc.state || "").toLowerCase();
+    const docNpi = (doc.npi_number || "").toString();
 
-    const matchesSpecialty =
-      selectedSpecialty === "" || doc.specialty === selectedSpecialty;
+    const matchesName =
+      !searchName ||
+      docFullName.includes(searchName.toLowerCase()) ||
+      docSpec.includes(searchName.toLowerCase()) ||
+      docNpi.includes(searchName);
 
-    const matchesSaved = !showSavedOnly || savedDoctorIds.includes(docId);
+    const matchesCity = !searchCity || docCity.includes(searchCity.toLowerCase());
+    const matchesState = !searchState || docState.includes(searchState.toLowerCase());
 
-    return matchesSearch && matchesSpecialty && matchesSaved;
+    const matchesCategory =
+      selectedCategory === "All" ||
+      docSpec.includes(selectedCategory.toLowerCase());
+
+    return matchesName && matchesCity && matchesState && matchesCategory;
   });
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, selectedSpecialty, showSavedOnly]);
+  }, [searchName, searchCity, searchState, selectedCategory, showOnlyFavorites]);
+
+  const changePage = (newPage: number) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const totalPages = Math.ceil(filteredDoctors.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentDoctors = filteredDoctors.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedDoctors = filteredDoctors.slice(startIndex, startIndex + itemsPerPage);
 
-  const specialties = Array.from(
-    new Set(doctors.map((d) => d.specialty).filter(Boolean))
-  );
-
-  const handleCloseModal = () => {
-    setSelectedDoctor(null);
-    setIsContacting(false);
-    setContactSubmitted(false);
-    setSuggestions([]);
-    setFormData({
-      name: "",
-      email: "",
-      inquiryType: "General Clinical Appointment",
-      message: "",
-    });
-  };
-
-  // Live Auto-Spellcheck & Word Matching Engine
-  const handleMessageInput = (text: string) => {
-    setFormData((prev) => ({ ...prev, message: text }));
-
-    const words = text.toLowerCase().split(/\s+/);
-    const detected: { wrong: string; correct: string }[] = [];
-
-    words.forEach((w) => {
-      const cleanWord = w.replace(/[^\w]/g, "");
-      if (DICTIONARY[cleanWord] && DICTIONARY[cleanWord] !== cleanWord) {
-        if (!detected.some((item) => item.wrong === cleanWord)) {
-          detected.push({ wrong: cleanWord, correct: DICTIONARY[cleanWord] });
-        }
-      }
-    });
-
-    setSuggestions(detected);
-  };
-
-  // Auto-Fill Corrected Spelling into Textarea
-  const autoFillCorrection = (wrongWord: string, correctWord: string) => {
-    const regex = new RegExp(`\\b${wrongWord}\\b`, "gi");
-    const fixedText = formData.message.replace(regex, correctWord);
-    setFormData((prev) => ({ ...prev, message: fixedText }));
-    setSuggestions((prev) => prev.filter((item) => item.wrong !== wrongWord));
-  };
-
-  const handleSendContact = (e: React.FormEvent) => {
-    e.preventDefault();
-    setContactSubmitted(true);
-  };
+  const categories = [
+    "Primary Care",
+    "Cardiology",
+    "Dermatology",
+    "Pediatrics",
+    "Neurology",
+    "Dentistry",
+    "Orthopedics",
+  ];
 
   return (
-    <main className="p-8 max-w-6xl mx-auto bg-gray-50 min-h-screen relative flex flex-col justify-between">
-      <div>
-        {/* Header */}
-        <div className="mb-8 border-b pb-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">MDScout Directory</h1>
-              <p className="text-gray-600 text-sm mt-1">
-                Showing <span className="font-bold text-blue-600">{filteredDoctors.length}</span> Total Doctors
-              </p>
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans">
+      {/* Top Navbar */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm">
+              🛡️
             </div>
+            <span className="text-xl font-extrabold text-blue-900 tracking-tight">
+              MDScout<span className="text-blue-600">.io</span>
+            </span>
+          </Link>
 
+          <div className="flex items-center gap-3">
+            {/* Favorites Toggle Button in Header */}
             <button
-              onClick={() => setShowSavedOnly(!showSavedOnly)}
-              className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2 border shadow-sm ${
-                showSavedOnly
-                  ? "bg-red-50 border-red-200 text-red-600"
-                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+              onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+              className={`text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 border ${
+                showOnlyFavorites
+                  ? "bg-red-50 text-red-600 border-red-200"
+                  : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
               }`}
             >
-              <span>{showSavedOnly ? "❤️ Showing Saved" : "🤍 Saved Doctors"}</span>
-              <span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full font-bold">
-                {savedDoctorIds.length}
-              </span>
+              <span className="text-red-500">❤️</span>
+              Favorites ({favorites.length})
             </button>
-          </div>
 
-          {/* Search Bar & Dropdown */}
-          <div className="mt-6 flex flex-col md:flex-row gap-4">
+            <span className="hidden md:flex items-center gap-1.5 text-xs font-semibold text-slate-600 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Official US NPI Registry
+            </span>
+
+            {user ? (
+              <button
+                onClick={handleSignOut}
+                className="text-xs font-bold text-red-600 border border-red-200 hover:bg-red-50 px-4 py-2 rounded-lg transition"
+              >
+                Sign Out
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition shadow-sm"
+              >
+                Sign In
+              </Link>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <main className="max-w-7xl mx-auto px-4 py-10">
+        <div className="text-center max-w-3xl mx-auto pt-4 pb-6">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-100/70 px-3.5 py-1 rounded-full mb-4">
+            🛡️ Trusted Nationwide Healthcare Finder
+          </span>
+
+          <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+            Find Top Doctors & Clinics Near You in Seconds
+          </h1>
+
+          <p className="mt-4 text-xs sm:text-sm text-slate-500 max-w-xl mx-auto">
+            Search licensed physicians, pediatricians, dentists, and specialists across all US states with verified credentials.
+          </p>
+
+          {/* Search Inputs */}
+          <div className="mt-8 bg-white p-2.5 rounded-2xl border border-slate-200 shadow-xl flex flex-col sm:flex-row gap-2">
             <input
               type="text"
-              placeholder="Search by Name, City, or NPI..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 p-3 border border-gray-300 rounded-lg shadow-sm font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              placeholder="Doctor Name, Specialty, or NPI"
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+              className="flex-1 px-4 py-3 text-xs sm:text-sm text-slate-900 outline-none rounded-xl bg-slate-50 sm:bg-white border sm:border-none border-slate-200"
             />
-
-            <select
-              value={selectedSpecialty}
-              onChange={(e) => setSelectedSpecialty(e.target.value)}
-              className="p-3 border border-gray-300 rounded-lg shadow-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              <option value="">All Specialties</option>
-              {specialties.map((spec) => (
-                <option key={spec} value={spec}>
-                  {spec}
-                </option>
-              ))}
-            </select>
+            <input
+              type="text"
+              placeholder="City (e.g., Brooklyn)"
+              value={searchCity}
+              onChange={(e) => setSearchCity(e.target.value)}
+              className="w-full sm:w-44 px-4 py-3 text-xs sm:text-sm text-slate-900 outline-none rounded-xl bg-slate-50 sm:bg-white border sm:border-none border-slate-200 sm:border-l sm:border-slate-200"
+            />
+            <input
+              type="text"
+              placeholder="STATE (E.G. NY)"
+              value={searchState}
+              onChange={(e) => setSearchState(e.target.value)}
+              className="w-full sm:w-36 px-4 py-3 text-xs sm:text-sm text-slate-900 outline-none rounded-xl bg-slate-50 sm:bg-white border sm:border-none border-slate-200 sm:border-l sm:border-slate-200 uppercase"
+            />
+            <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl text-xs sm:text-sm transition shadow-md">
+              Find Doctors
+            </button>
           </div>
         </div>
 
-        {/* Doctor Grid */}
+        {/* Categories */}
+        <div className="mt-10 mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-slate-800">
+              Browse Healthcare by Category
+            </h2>
+            {showOnlyFavorites && (
+              <span className="text-xs font-bold text-red-600 bg-red-50 px-2.5 py-1 rounded-md border border-red-200">
+                Showing Favorites Only
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+            <button
+              onClick={() => setSelectedCategory("All")}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
+                selectedCategory === "All"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              All Specialists
+            </button>
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
+                  selectedCategory === cat
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Directory Listing */}
         {loading ? (
-          <div className="text-center py-12 text-gray-500 font-medium">Loading Doctors Database...</div>
+          <div className="text-center py-20 text-slate-400 text-xs font-medium">
+            Loading Official NPI Registered Doctors...
+          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {currentDoctors.length > 0 ? (
-              currentDoctors.map((doc) => {
-                const docId = String(doc.id || doc.npi_number);
-                const isSaved = savedDoctorIds.includes(docId);
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Verified Directory ({filteredDoctors.length} Found)
+              </h2>
+              <span className="text-xs text-slate-400 font-medium">
+                Page {currentPage} of {totalPages || 1}
+              </span>
+            </div>
 
-                return (
-                  <div
-                    key={docId}
-                    className="bg-white border border-gray-200 p-5 rounded-xl shadow-sm hover:shadow-md transition relative flex flex-col justify-between"
-                  >
-                    <button
-                      onClick={(e) => toggleSaveDoctor(docId, e)}
-                      title={isSaved ? "Remove from favorites" : "Save to favorites"}
-                      className="absolute top-4 right-4 text-lg p-1 transition transform hover:scale-125 z-10"
-                    >
-                      {isSaved ? "❤️" : "🤍"}
-                    </button>
+            {paginatedDoctors.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {paginatedDoctors.map((doc) => {
+                    const docIdStr = String(doc.id);
+                    const isFav = favorites.includes(docIdStr);
 
-                    <div>
+                    const doctorName = doc.first_name && doc.last_name
+                      ? `Dr. ${doc.first_name} ${doc.last_name}`
+                      : doc.first_name
+                      ? `Dr. ${doc.first_name}`
+                      : doc.name || "Specialist Doctor";
+
+                    const doctorSpecialty = doc.specialty || doc.specialization || "General Medicine";
+                    const doctorLocation = doc.location || doc.city || doc.address || "Verified Center";
+                    const doctorPhone = doc.phone || doc.phone_number || doc.contact;
+
+                    return (
                       <div
-                        onClick={() => setSelectedDoctor(doc)}
-                        className="flex items-center space-x-3 mb-3 pr-8 cursor-pointer group"
+                        key={doc.id}
+                        className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between relative group hover:border-blue-300 transition"
                       >
-                        <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 font-bold flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition">
-                          {doc.first_name?.[0] || "D"}
-                        </div>
                         <div>
-                          <h2 className="font-semibold text-gray-900 group-hover:text-blue-600 transition underline-offset-2 group-hover:underline">
-                            Dr. {doc.first_name} {doc.last_name}
-                          </h2>
-                          <p className="text-xs text-blue-600 font-medium">{doc.specialty}</p>
+                          <div className="flex items-start justify-between gap-2 mb-3">
+                            <div>
+                              <h3
+                                onClick={() => setViewDoctorProfile(doc)}
+                                className="font-bold text-slate-900 text-base hover:text-blue-600 transition cursor-pointer hover:underline decoration-blue-500 underline-offset-2 pr-6"
+                              >
+                                {doctorName}
+                              </h3>
+                              <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-md inline-block mt-1">
+                                {doctorSpecialty}
+                              </span>
+                            </div>
+
+                            {/* Heart / Favorite Button */}
+                            <button
+                              onClick={(e) => toggleFavorite(docIdStr, e)}
+                              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center transition border border-slate-100"
+                              title={isFav ? "Remove from Favorites" : "Add to Favorites"}
+                            >
+                              <span className={`text-base transition-transform active:scale-125 ${isFav ? "scale-110" : "opacity-40 hover:opacity-100"}`}>
+                                {isFav ? "❤️" : "🤍"}
+                              </span>
+                            </button>
+                          </div>
+
+                          <div className="text-xs text-slate-600 space-y-2 mt-4">
+                            <p className="flex items-center gap-2">
+                              <span>📍</span> {doctorLocation}
+                            </p>
+
+                            {doctorPhone && (
+                              <p className="flex items-center gap-2 font-medium text-slate-800">
+                                <span>📞</span> {doctorPhone}
+                              </p>
+                            )}
+
+                            {doc.npi_number && (
+                              <p className="flex items-center gap-1.5 font-mono text-[11px] text-slate-400">
+                                NPI: {doc.npi_number}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mt-5 pt-4 border-t border-slate-100 flex justify-end">
+                          <button
+                            onClick={() => setSelectedDoctorForInquiry(doc)}
+                            className="text-xs font-semibold bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 px-3.5 py-2 rounded-lg transition"
+                          >
+                            Send Inquiry / Contact →
+                          </button>
                         </div>
                       </div>
+                    );
+                  })}
+                </div>
 
-                      <div className="border-t border-gray-100 pt-3 mt-2 text-xs text-gray-500 space-y-1">
-                        <p>📍 Location: {doc.city}, {doc.state}</p>
-                        <p>🆔 NPI: {doc.npi_number}</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 pt-3 border-t border-gray-50 flex justify-end">
-                      <button
-                        onClick={() => setSelectedDoctor(doc)}
-                        className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition"
-                      >
-                        View Profile →
-                      </button>
-                    </div>
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="mt-10 flex justify-center items-center gap-2">
+                    <button
+                      onClick={() => changePage(Math.max(currentPage - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-3.5 py-2 border rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 transition shadow-sm"
+                    >
+                      ← Prev
+                    </button>
+                    <span className="text-xs font-bold text-slate-600 px-3">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => changePage(Math.min(currentPage + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="px-3.5 py-2 border rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 transition shadow-sm"
+                    >
+                      Next →
+                    </button>
                   </div>
-                );
-              })
+                )}
+              </>
             ) : (
-              <p className="text-gray-500 col-span-full text-center py-12 font-medium">
-                {showSavedOnly
-                  ? "Aap ne abhi tak koi doctor save nahi kiya."
-                  : "Koi doctor matching nahi mila."}
-              </p>
+              <div className="text-center py-12 bg-white rounded-2xl border border-slate-200 text-xs text-slate-400">
+                {showOnlyFavorites
+                  ? "No favorite doctors added yet. Click 🤍 on any doctor card to add them!"
+                  : "No healthcare providers found matching your search criteria."}
+              </div>
             )}
           </div>
         )}
-      </div>
+      </main>
 
-      {/* Pagination */}
-      {!loading && totalPages > 1 && (
-        <div className="mt-10 pt-6 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-gray-600 font-medium">
-            Page <span className="text-blue-600 font-bold">{currentPage}</span> of{" "}
-            <span className="font-bold">{totalPages}</span>
-          </p>
-
-          <div className="flex items-center space-x-2">
+      {/* Profile View Modal */}
+      {viewDoctorProfile && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative border">
             <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-4 py-2 border rounded-lg text-sm font-medium bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
+              onClick={() => setViewDoctorProfile(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold text-sm"
             >
-              Previous
+              ✕
             </button>
 
-            <div className="flex space-x-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-9 h-9 rounded-lg text-sm font-medium transition ${
-                    currentPage === page
-                      ? "bg-blue-600 text-white shadow-md"
-                      : "bg-white text-gray-700 border hover:bg-gray-50"
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
+            <div className="text-center mb-5">
+              <div className="w-16 h-16 bg-blue-100 text-blue-600 font-black text-xl rounded-full flex items-center justify-center mx-auto mb-3">
+                {viewDoctorProfile.first_name ? viewDoctorProfile.first_name[0] : "D"}
+              </div>
+              <h3 className="text-xl font-bold text-slate-900">
+                {viewDoctorProfile.first_name ? `Dr. ${viewDoctorProfile.first_name} ${viewDoctorProfile.last_name || ""}` : viewDoctorProfile.name || "Doctor"}
+              </h3>
+              <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full inline-block mt-1">
+                {viewDoctorProfile.specialty || viewDoctorProfile.specialization || "General Specialist"}
+              </span>
+            </div>
+
+            <div className="space-y-3 bg-slate-50 p-4 rounded-xl text-xs border border-slate-200 text-slate-700">
+              <p className="flex justify-between border-b pb-2">
+                <span className="font-semibold text-slate-500">Location:</span>
+                <span className="font-medium text-slate-900">{viewDoctorProfile.location || viewDoctorProfile.city || "N/A"}</span>
+              </p>
+              <p className="flex justify-between border-b pb-2">
+                <span className="font-semibold text-slate-500">Phone Contact:</span>
+                <span className="font-medium text-slate-900">{viewDoctorProfile.phone || viewDoctorProfile.phone_number || viewDoctorProfile.contact || "N/A"}</span>
+              </p>
+              {viewDoctorProfile.npi_number && (
+                <p className="flex justify-between">
+                  <span className="font-semibold text-slate-500">NPI Number:</span>
+                  <span className="font-mono text-slate-900">{viewDoctorProfile.npi_number}</span>
+                </p>
+              )}
             </div>
 
             <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-4 py-2 border rounded-lg text-sm font-medium bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
+              onClick={() => {
+                const doc = viewDoctorProfile;
+                setViewDoctorProfile(null);
+                setSelectedDoctorForInquiry(doc);
+              }}
+              className="w-full mt-5 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-md"
             >
-              Next
+              Send Direct Inquiry →
             </button>
           </div>
         </div>
       )}
 
-      {/* DOCTOR DETAIL & CONTACT MODAL */}
-      {selectedDoctor && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative animate-in fade-in zoom-in duration-150">
+      {/* Inquiry Form Modal */}
+      {selectedDoctorForInquiry && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative border">
             <button
-              onClick={handleCloseModal}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold p-1"
+              onClick={() => setSelectedDoctorForInquiry(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold text-sm"
             >
               ✕
             </button>
 
-            <div className="flex items-center space-x-4 mb-6">
-              <div className="w-16 h-16 rounded-full bg-blue-600 text-white font-bold text-2xl flex items-center justify-center">
-                {selectedDoctor.first_name?.[0]}
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  Dr. {selectedDoctor.first_name} {selectedDoctor.last_name}
-                </h2>
-                <p className="text-sm font-semibold text-blue-600">{selectedDoctor.specialty}</p>
-                <span className="inline-block mt-1 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-medium">
-                  Active NPI Registry
-                </span>
-              </div>
-            </div>
+            <h3 className="text-lg font-bold text-slate-900 mb-1">
+              Contact {selectedDoctorForInquiry.first_name ? `Dr. ${selectedDoctorForInquiry.first_name} ${selectedDoctorForInquiry.last_name || ""}` : "Doctor"}
+            </h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Send a direct message or appointment inquiry.
+            </p>
 
-            {!isContacting ? (
-              <>
-                <div className="space-y-3 border-t border-b py-4 my-2 text-sm text-gray-700">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">NPI Number:</span>
-                    <span className="font-mono font-medium text-gray-900">{selectedDoctor.npi_number}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Practice Location:</span>
-                    <span className="font-medium text-gray-900">{selectedDoctor.city}, {selectedDoctor.state}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Primary Specialty:</span>
-                    <span className="font-medium text-gray-900">{selectedDoctor.specialty}</span>
-                  </div>
-                  <div className="flex justify-between items-center bg-blue-50 p-2.5 rounded-lg border border-blue-100 mt-2">
-                    <span className="text-blue-800 text-xs font-semibold">📞 Clinic Direct Line:</span>
-                    <span className="font-mono text-xs font-bold text-blue-900">
-                      +1 ({selectedDoctor.npi_number?.slice(0,3) || "800"}) 555-{selectedDoctor.npi_number?.slice(-4) || "0199"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-6 flex gap-3">
-                  <button
-                    onClick={() => setIsContacting(true)}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition text-center text-sm shadow-md"
-                  >
-                    ✉️ Send Inquiry
-                  </button>
-                  <button
-                    onClick={handleCloseModal}
-                    className="px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-xl transition text-sm"
-                  >
-                    Close
-                  </button>
-                </div>
-              </>
-            ) : contactSubmitted ? (
-              <div className="text-center py-4 space-y-3">
-                <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
-                  ✓
-                </div>
-                <h3 className="text-lg font-bold text-gray-900">All Information Sent!</h3>
-                <p className="text-xs text-gray-600">
-                  Your request has been routed to Dr. {selectedDoctor.last_name}'s clinic terminal.
-                </p>
-
-                <div className="bg-gray-50 p-3 rounded-xl border text-left text-xs text-gray-700 space-y-1.5 font-mono">
-                  <p><span className="text-gray-400">Recipient:</span> Dr. {selectedDoctor.first_name} {selectedDoctor.last_name}</p>
-                  <p><span className="text-gray-400">Sender Name:</span> {formData.name}</p>
-                  <p><span className="text-gray-400">Sender Email:</span> {formData.email}</p>
-                  <p><span className="text-gray-400">Category:</span> {formData.inquiryType}</p>
-                  <p><span className="text-gray-400">Message:</span> "{formData.message}"</p>
-                </div>
-
-                <button
-                  onClick={handleCloseModal}
-                  className="mt-4 w-full bg-gray-900 text-white font-medium py-2 rounded-xl text-sm"
-                >
-                  Done
-                </button>
+            {inquirySuccess ? (
+              <div className="p-4 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-xl border border-emerald-200 text-center">
+                {inquirySuccess}
               </div>
             ) : (
-              <form onSubmit={handleSendContact} className="space-y-3 pt-1">
-                <h3 className="font-bold text-gray-900 text-sm">Submit Clinical Inquiry</h3>
-
+              <form onSubmit={handleInquirySubmit} className="space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 block mb-1">Your Full Name</label>
+                  <label className="text-xs font-semibold text-slate-600 block mb-1">
+                    Your Name
+                  </label>
                   <input
-                    required
                     type="text"
-                    placeholder="e.g. John Doe"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full p-2.5 border rounded-lg text-sm font-medium text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                    required
+                    placeholder="John Doe"
+                    value={senderName}
+                    onChange={(e) => setSenderName(e.target.value)}
+                    className="w-full p-2.5 border rounded-lg text-xs text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 block mb-1">Inquiry Category</label>
+                  <label className="text-xs font-semibold text-slate-600 block mb-1">
+                    Your Email
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="patient@example.com"
+                    value={senderEmail}
+                    onChange={(e) => setSenderEmail(e.target.value)}
+                    className="w-full p-2.5 border rounded-lg text-xs text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 block mb-1">
+                    Inquiry Type
+                  </label>
                   <select
-                    value={formData.inquiryType}
-                    onChange={(e) => setFormData({ ...formData, inquiryType: e.target.value })}
-                    className="w-full p-2.5 border rounded-lg text-sm font-medium text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                    value={inquiryType}
+                    onChange={(e) => setInquiryType(e.target.value)}
+                    className="w-full p-2.5 border rounded-lg text-xs text-slate-900 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   >
-                    <option value="General Clinical Appointment">General Clinical Appointment</option>
-                    <option value="Medical Stationery Request">Medical Stationery Request</option>
-                    <option value="Insurance & Billing Documentation">Insurance & Billing Documentation</option>
-                    <option value="Patient Referral & Records Transfer">Patient Referral & Records Transfer</option>
+                    <option value="General Query">General Query</option>
+                    <option value="Appointment Request">Appointment Request</option>
+                    <option value="Second Opinion">Second Opinion</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 block mb-1">Your Email</label>
-                  <input
-                    required
-                    type="email"
-                    placeholder="email@example.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full p-2.5 border rounded-lg text-sm font-medium text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
-                </div>
-
-                {/* Textarea with Native & Interactive Auto-Correct */}
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs font-semibold text-gray-600">Detailed Message</label>
-                    <span className="text-[10px] bg-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded">
-                      Native Spellcheck Active ⚡
-                    </span>
-                  </div>
-
+                  <label className="text-xs font-semibold text-slate-600 block mb-1">
+                    Message
+                  </label>
                   <textarea
                     required
                     rows={3}
-                    spellCheck="true"
-                    lang="en"
-                    placeholder="Type message e.g. Need stastionry letterhead or dector appointment..."
-                    value={formData.message}
-                    onChange={(e) => handleMessageInput(e.target.value)}
-                    className="w-full p-2.5 border rounded-lg text-sm font-medium text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                  ></textarea>
-
-                  {/* Dynamic Clickable Auto-Fill Suggestion Bar */}
-                  {suggestions.length > 0 && (
-                    <div className="mt-1.5 p-2 bg-blue-50 border border-blue-200 rounded-lg text-xs space-y-1">
-                      <p className="font-semibold text-blue-900">✨ Click to Auto-Fill Correction:</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {suggestions.map((item) => (
-                          <button
-                            key={item.wrong}
-                            type="button"
-                            onClick={() => autoFillCorrection(item.wrong, item.correct)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1 transition shadow-sm"
-                          >
-                            <span>Replace "{item.wrong}" with <strong>{item.correct}</strong></span>
-                            <span>⚡</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                    placeholder="Describe your medical query or preferred appointment time..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    className="w-full p-2.5 border rounded-lg text-xs text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
+                  />
                 </div>
 
-                <div className="flex gap-2 pt-1">
-                  <button
-                    type="submit"
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg text-sm transition"
-                  >
-                    Submit Request
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsContacting(false)}
-                    className="px-3 bg-gray-100 text-gray-700 font-medium py-2 rounded-lg text-sm hover:bg-gray-200 transition"
-                  >
-                    Back
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  disabled={submittingInquiry}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs transition shadow-md disabled:opacity-50"
+                >
+                  {submittingInquiry ? "Sending Inquiry..." : "Submit Inquiry"}
+                </button>
               </form>
             )}
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }
