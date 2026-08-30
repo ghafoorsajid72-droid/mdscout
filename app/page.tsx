@@ -21,6 +21,7 @@ export default function Home() {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalCount, setTotalCount] = useState<number>(0);
   const itemsPerPage = 12;
 
   // Separate Modal States
@@ -35,8 +36,8 @@ export default function Home() {
   const [submittingInquiry, setSubmittingInquiry] = useState<boolean>(false);
   const [inquirySuccess, setInquirySuccess] = useState<string>("");
 
+  // Load user + favorites once on mount
   useEffect(() => {
-    // Load local saved favorites
     const savedFavs = localStorage.getItem("mdscout_favs");
     if (savedFavs) {
       try {
@@ -63,19 +64,52 @@ export default function Home() {
       }
     });
 
-    async function fetchDoctors() {
-      setLoading(true);
-      const { data, error } = await supabase.from("doctors").select("*");
-      if (!error && data) setDoctors(data);
-      setLoading(false);
-    }
-
-    fetchDoctors();
-
     return () => {
       authListener.subscription.unsubscribe();
     };
   }, []);
+
+  // Fetch doctors from Supabase - SERVER-SIDE filtering + pagination
+  async function fetchDoctors() {
+    setLoading(true);
+    let query = supabase.from("doctors").select("*", { count: "exact" });
+
+    if (selectedCategory !== "All") {
+      query = query.ilike("specialty", `%${selectedCategory}%`);
+    }
+    if (searchName) {
+      query = query.or(
+        `first_name.ilike.%${searchName}%,last_name.ilike.%${searchName}%,npi_number.ilike.%${searchName}%`
+      );
+    }
+    if (searchCity) {
+      query = query.ilike("city", `%${searchCity}%`);
+    }
+    if (searchState) {
+      query = query.ilike("state", `%${searchState}%`);
+    }
+
+    const from = (currentPage - 1) * itemsPerPage;
+    const to = from + itemsPerPage - 1;
+    query = query.range(from, to);
+
+    const { data, error, count } = await query;
+    if (!error && data) {
+      setDoctors(data);
+      setTotalCount(count || 0);
+    }
+    setLoading(false);
+  }
+
+  // Re-fetch whenever filters or page change
+  useEffect(() => {
+    fetchDoctors();
+  }, [selectedCategory, searchName, searchCity, searchState, currentPage]);
+
+  // Reset to page 1 whenever a filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchName, searchCity, searchState, selectedCategory, showOnlyFavorites]);
 
   // Toggle Favorite Function
   const toggleFavorite = (docId: string, e: React.MouseEvent) => {
@@ -130,49 +164,18 @@ export default function Home() {
     }
   };
 
-  // Advanced Filtering
-  const filteredDoctors = doctors.filter((doc) => {
-    const docIdStr = String(doc.id);
-    if (showOnlyFavorites && !favorites.includes(docIdStr)) {
-      return false;
-    }
-
-    const docFirstName = doc.first_name || "";
-    const docLastName = doc.last_name || "";
-    const docFullName = `${docFirstName} ${docLastName}`.toLowerCase();
-    const docSpec = (doc.specialty || doc.specialization || "").toLowerCase();
-    const docCity = (doc.city || doc.location || doc.address || "").toLowerCase();
-    const docState = (doc.state || "").toLowerCase();
-    const docNpi = (doc.npi_number || "").toString();
-
-    const matchesName =
-      !searchName ||
-      docFullName.includes(searchName.toLowerCase()) ||
-      docSpec.includes(searchName.toLowerCase()) ||
-      docNpi.includes(searchName);
-
-    const matchesCity = !searchCity || docCity.includes(searchCity.toLowerCase());
-    const matchesState = !searchState || docState.includes(searchState.toLowerCase());
-
-    const matchesCategory =
-      selectedCategory === "All" ||
-      docSpec.includes(selectedCategory.toLowerCase());
-
-    return matchesName && matchesCity && matchesState && matchesCategory;
-  });
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchName, searchCity, searchState, selectedCategory, showOnlyFavorites]);
+  // Favorites-only filtering happens client-side (on the current page's data)
+  const filteredDoctors = showOnlyFavorites
+    ? doctors.filter((doc) => favorites.includes(String(doc.id)))
+    : doctors;
 
   const changePage = (newPage: number) => {
     setCurrentPage(newPage);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const totalPages = Math.ceil(filteredDoctors.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedDoctors = filteredDoctors.slice(startIndex, startIndex + itemsPerPage);
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+  const paginatedDoctors = filteredDoctors;
 
   const categories = [
     "Primary Care",
@@ -199,7 +202,6 @@ export default function Home() {
           </Link>
 
           <div className="flex items-center gap-3">
-            {/* Favorites Toggle Button in Header */}
             <button
               onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
               className={`text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 border ${
@@ -328,7 +330,7 @@ export default function Home() {
           <div>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Verified Directory ({filteredDoctors.length} Found)
+                Verified Directory ({totalCount} Found)
               </h2>
               <span className="text-xs text-slate-400 font-medium">
                 Page {currentPage} of {totalPages || 1}
@@ -371,7 +373,6 @@ export default function Home() {
                               </span>
                             </div>
 
-                            {/* Heart / Favorite Button */}
                             <button
                               onClick={(e) => toggleFavorite(docIdStr, e)}
                               className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center transition border border-slate-100"
