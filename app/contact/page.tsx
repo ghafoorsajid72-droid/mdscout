@@ -1,8 +1,17 @@
 import React from 'react';
+import Link from 'next/link';
 
 export default function ContactUs() {
   return (
-    <div className="max-w-3xl mx-auto px-4 py-12 text-slate-800">
+    <div className="max-w-3xl mx-auto px-4 py-12 text-slate-800 relative">
+      <Link
+        href="/"
+        className="absolute top-6 right-4 w-9 h-9 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 font-bold text-sm transition border border-slate-200"
+        title="Close"
+      >
+        ✕
+      </Link>
+
       <h1 className="text-3xl font-bold mb-3">Contact Us</h1>
       <p className="text-slate-600 mb-8">
         Have questions about MDScout, our provider data, or API access? Reach out to us below.

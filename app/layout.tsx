@@ -29,20 +29,6 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-slate-50 text-slate-800">
-        {/* Global Header / Navbar */}
-        <header className="w-full border-b border-slate-200 bg-white sticky top-0 z-50">
-          <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-            <Link href="/" className="font-bold text-xl text-blue-600 tracking-tight">
-              MDScout
-            </Link>
-            <nav className="flex items-center gap-6 text-sm font-medium text-slate-600">
-              <Link href="/pricing" className="hover:text-blue-600 transition-colors">Pricing</Link>
-              <Link href="/about" className="hover:text-blue-600 transition-colors">About</Link>
-              <Link href="/contact" className="hover:text-blue-600 transition-colors">Contact</Link>
-            </nav>
-          </div>
-        </header>
-
         {/* Page Content */}
         <main className="flex-grow">{children}</main>
 

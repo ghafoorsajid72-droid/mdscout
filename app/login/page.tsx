@@ -49,8 +49,11 @@ export default function LoginPage() {
           password,
         });
         if (error) throw error;
-        router.push("/");
-        router.refresh();
+        setSuccessMsg("Signed in successfully! Redirecting...");
+        setTimeout(() => {
+          router.push("/");
+          router.refresh();
+        }, 800);
       } else if (view === "forgot") {
         // Send Email Password Reset Link / OTP
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -70,11 +73,19 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-gray-100 relative">
         <Link
-          href="/"
-          className="text-xs text-gray-500 hover:text-blue-600 mb-4 inline-block font-medium"
-        >
-          ← Back to Directory
-        </Link>
+      href="/"
+      className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 font-bold text-sm transition"
+      title="Close"
+    >
+      ✕
+    </Link>
+
+    <Link
+      href="/"
+      className="text-xs text-gray-500 hover:text-blue-600 mb-4 inline-block font-medium"
+    >
+      ← Back to Directory
+    </Link>
 
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">
@@ -213,13 +224,16 @@ export default function LoginPage() {
             </div>
           )}
 
-          <button
+<button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg text-sm transition shadow-md disabled:opacity-50"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg text-sm transition shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
           >
+            {loading && (
+              <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+            )}
             {loading
-              ? "Processing..."
+              ? "Signing In..."
               : view === "signup"
               ? "Create Account"
               : view === "login"

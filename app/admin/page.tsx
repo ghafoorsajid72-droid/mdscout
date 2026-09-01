@@ -9,6 +9,25 @@ export default function AdminDashboard() {
   const [inquiries, setInquiries] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<"doctors" | "inquiries">("doctors");
+  const [authorized, setAuthorized] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    checkAccess();
+  }, []);
+
+  const checkAccess = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setAuthorized(false);
+      return;
+    }
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    setAuthorized(profile?.role === "admin");
+  };
 
   // Add/Edit Form State
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -24,8 +43,10 @@ export default function AdminDashboard() {
   });
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (authorized) {
+      fetchData();
+    }
+  }, [authorized]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -73,6 +94,26 @@ export default function AdminDashboard() {
     setShowModal(false);
     fetchData();
   };
+
+  if (authorized === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-slate-500">
+        Checking access...
+      </div>
+    );
+  }
+
+  if (authorized === false) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 text-center px-4">
+        <p className="text-lg font-bold text-slate-900">Access Denied</p>
+        <p className="text-sm text-slate-500">This page is restricted to administrators only.</p>
+        <Link href="/" className="text-sm font-semibold text-blue-600 hover:underline mt-2">
+          ← Back to MDScout
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans text-xs">

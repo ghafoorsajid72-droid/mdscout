@@ -4,31 +4,44 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
+const US_STATES = [
+  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
+  "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
+  "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT",
+  "VA","WA","WV","WI","WY"
+];
+
+const SPECIALTY_ICONS: Record<string, string> = {
+  "All": "🩺",
+  "Primary Care": "👤",
+  "Cardiology": "❤️",
+  "Dermatology": "🧴",
+  "Pediatrics": "👶",
+  "Neurology": "🧠",
+  "Dentistry": "🦷",
+  "Orthopedics": "🦴",
+};
+
 export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [doctors, setDoctors] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Favorites State
   const [favorites, setFavorites] = useState<string[]>([]);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState<boolean>(false);
 
-  // Search Inputs
   const [searchName, setSearchName] = useState<string>("");
   const [searchCity, setSearchCity] = useState<string>("");
   const [searchState, setSearchState] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalCount, setTotalCount] = useState<number>(0);
-  const itemsPerPage = 12;
+  const itemsPerPage = 24;
 
-  // Separate Modal States
   const [viewDoctorProfile, setViewDoctorProfile] = useState<any>(null);
   const [selectedDoctorForInquiry, setSelectedDoctorForInquiry] = useState<any>(null);
 
-  // Inquiry Form States
   const [inquiryType, setInquiryType] = useState<string>("General Query");
   const [message, setMessage] = useState<string>("");
   const [senderName, setSenderName] = useState<string>("");
@@ -36,7 +49,6 @@ export default function Home() {
   const [submittingInquiry, setSubmittingInquiry] = useState<boolean>(false);
   const [inquirySuccess, setInquirySuccess] = useState<string>("");
 
-  // Load user + favorites once on mount
   useEffect(() => {
     const savedFavs = localStorage.getItem("mdscout_favs");
     if (savedFavs) {
@@ -69,17 +81,39 @@ export default function Home() {
     };
   }, []);
 
-  // Fetch doctors from Supabase - SERVER-SIDE filtering + pagination
   async function fetchDoctors() {
     setLoading(true);
-    let query = supabase.from("doctors").select("*", { count: "exact" });
+
+    // FAVORITES MODE: fetch only the doctors saved as favorites
+    if (showOnlyFavorites) {
+      if (favorites.length === 0) {
+        setDoctors([]);
+        setTotalCount(0);
+        setLoading(false);
+        return;
+      }
+      const { data, error } = await supabase
+        .from("doctors")
+        .select("*")
+        .in("id", favorites);
+
+      if (!error && data) {
+        setDoctors(data);
+        setTotalCount(data.length);
+      }
+      setLoading(false);
+      return;
+    }
+
+    // NORMAL MODE: server-side filtered + paginated search
+    let query = supabase.from("doctors").select("*", { count: "estimated" });
 
     if (selectedCategory !== "All") {
       query = query.ilike("specialty", `%${selectedCategory}%`);
     }
     if (searchName) {
       query = query.or(
-        `first_name.ilike.%${searchName}%,last_name.ilike.%${searchName}%,npi_number.ilike.%${searchName}%`
+        `first_name.ilike.%${searchName}%,last_name.ilike.%${searchName}%,npi_number.ilike.%${searchName}%,specialty.ilike.%${searchName}%`
       );
     }
     if (searchCity) {
@@ -101,17 +135,14 @@ export default function Home() {
     setLoading(false);
   }
 
-  // Re-fetch whenever filters or page change
   useEffect(() => {
     fetchDoctors();
-  }, [selectedCategory, searchName, searchCity, searchState, currentPage]);
+  }, [selectedCategory, searchName, searchCity, searchState, currentPage, showOnlyFavorites]);
 
-  // Reset to page 1 whenever a filter changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchName, searchCity, searchState, selectedCategory, showOnlyFavorites]);
 
-  // Toggle Favorite Function
   const toggleFavorite = (docId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     let updatedFavs: string[];
@@ -122,11 +153,26 @@ export default function Home() {
     }
     setFavorites(updatedFavs);
     localStorage.setItem("mdscout_favs", JSON.stringify(updatedFavs));
+
+    // If viewing favorites only, remove the doctor card immediately
+    if (showOnlyFavorites) {
+      const remaining = updatedFavs.length;
+      if (remaining === 0) {
+        setShowOnlyFavorites(false);
+      } else {
+        setDoctors((prev) => prev.filter((doc) => String(doc.id) !== docId));
+        setTotalCount((prev) => Math.max(prev - 1, 0));
+      }
+    }
   };
+
+  const [signOutMsg, setSignOutMsg] = useState<boolean>(false);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setSignOutMsg(true);
+    setTimeout(() => setSignOutMsg(false), 2000);
   };
 
   const handleInquirySubmit = async (e: React.FormEvent) => {
@@ -164,15 +210,17 @@ export default function Home() {
     }
   };
 
-  // Favorites-only filtering happens client-side (on the current page's data)
-  const filteredDoctors = showOnlyFavorites
-    ? doctors.filter((doc) => favorites.includes(String(doc.id)))
-    : doctors;
+  const filteredDoctors = doctors;
 
-  const changePage = (newPage: number) => {
-    setCurrentPage(newPage);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+    const changePage = (newPage: number) => {
+      setCurrentPage(newPage);
+      const section = document.getElementById("directory-section");
+      if (section) {
+        const yOffset = -90; // header ke liye thoda space chhodte hain
+        const y = section.getBoundingClientRect().top + window.scrollY + yOffset;
+        window.scrollTo({ top: y, behavior: "smooth" });
+      }
+    };
 
   const totalPages = Math.ceil(totalCount / itemsPerPage);
   const paginatedDoctors = filteredDoctors;
@@ -187,9 +235,31 @@ export default function Home() {
     "Orthopedics",
   ];
 
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisible = 5;
+    if (totalPages <= maxVisible + 2) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("...");
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans">
-      {/* Top Navbar */}
+      {signOutMsg && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg animate-pulse">
+          ✓ Signed out successfully
+        </div>
+      )}
+
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
@@ -201,12 +271,18 @@ export default function Home() {
             </span>
           </Link>
 
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
+            <Link href="/pricing" className="hover:text-blue-600 transition-colors">Pricing</Link>
+            <Link href="/about" className="hover:text-blue-600 transition-colors">About</Link>
+            <Link href="/contact" className="hover:text-blue-600 transition-colors">Contact</Link>
+          </nav>
+
           <div className="flex items-center gap-3">
-            <button
+          <button
               onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
-              className={`text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-1.5 border ${
+              className={`text-xs font-bold px-3 py-2 rounded-lg transition-all duration-150 flex items-center gap-1.5 border cursor-pointer hover:scale-105 active:scale-95 ${
                 showOnlyFavorites
-                  ? "bg-red-50 text-red-600 border-red-200"
+                  ? "bg-red-50 text-red-600 border-red-200 shadow-sm"
                   : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
               }`}
             >
@@ -238,56 +314,69 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <main className="max-w-7xl mx-auto px-4 py-10">
-        <div className="text-center max-w-3xl mx-auto pt-4 pb-6">
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-100/70 px-3.5 py-1 rounded-full mb-4">
-            🛡️ Trusted Nationwide Healthcare Finder
-          </span>
+      <section className="bg-gradient-to-b from-blue-50/60 to-transparent border-b border-slate-100">
+      <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-12 items-center">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-100/70 px-3.5 py-1 rounded-full mb-4">
+              🛡️ Trusted Nationwide Healthcare Finder
+            </span>
 
-          <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-            Find Top Doctors & Clinics Near You in Seconds
-          </h1>
+            <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+              Find Top Doctors & Clinics <span className="text-blue-600">Near You</span> in Seconds
+            </h1>
 
-          <p className="mt-4 text-xs sm:text-sm text-slate-500 max-w-xl mx-auto">
-            Search licensed physicians, pediatricians, dentists, and specialists across all US states with verified credentials.
-          </p>
+            <p className="mt-4 text-sm text-slate-500 max-w-xl">
+              Search licensed physicians, specialists, and healthcare providers across all 50 states with verified NPI credentials.
+            </p>
+            <div className="mt-8 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-xl flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                placeholder="Doctor Name, Specialty, or NPI"
+                value={searchName}
+                onChange={(e) => setSearchName(e.target.value)}
+                className="flex-1 px-4 py-2 text-xs sm:text-sm text-slate-900 outline-none rounded-xl bg-slate-50 sm:bg-white border sm:border-none border-slate-200"
+              />
+              <input
+                type="text"
+                placeholder="City (e.g., Brooklyn)"
+                value={searchCity}
+                onChange={(e) => setSearchCity(e.target.value)}
+                className="w-full sm:w-44 px-4 py-2 text-xs sm:text-sm text-slate-900 outline-none rounded-xl bg-slate-50 sm:bg-white border sm:border-none border-slate-200 sm:border-l sm:border-slate-200"
+              />
+              <input
+                type="text"
+                placeholder="STATE (E.G. NY)"
+                value={searchState}
+                onChange={(e) => setSearchState(e.target.value)}
+                maxLength={2}
+                className="w-full sm:w-32 px-4 py-2 text-xs sm:text-sm text-slate-900 outline-none rounded-xl bg-slate-50 sm:bg-white border sm:border-none border-slate-200 sm:border-l sm:border-slate-200 uppercase"
+              />
+              <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-xl text-xs sm:text-sm transition shadow-md">
+                Find Doctors
+              </button>
+            </div>
 
-          {/* Search Inputs */}
-          <div className="mt-8 bg-white p-2.5 rounded-2xl border border-slate-200 shadow-xl flex flex-col sm:flex-row gap-2">
-            <input
-              type="text"
-              placeholder="Doctor Name, Specialty, or NPI"
-              value={searchName}
-              onChange={(e) => setSearchName(e.target.value)}
-              className="flex-1 px-4 py-3 text-xs sm:text-sm text-slate-900 outline-none rounded-xl bg-slate-50 sm:bg-white border sm:border-none border-slate-200"
-            />
-            <input
-              type="text"
-              placeholder="City (e.g., Brooklyn)"
-              value={searchCity}
-              onChange={(e) => setSearchCity(e.target.value)}
-              className="w-full sm:w-44 px-4 py-3 text-xs sm:text-sm text-slate-900 outline-none rounded-xl bg-slate-50 sm:bg-white border sm:border-none border-slate-200 sm:border-l sm:border-slate-200"
-            />
-            <input
-              type="text"
-              placeholder="STATE (E.G. NY)"
-              value={searchState}
-              onChange={(e) => setSearchState(e.target.value)}
-              className="w-full sm:w-36 px-4 py-3 text-xs sm:text-sm text-slate-900 outline-none rounded-xl bg-slate-50 sm:bg-white border sm:border-none border-slate-200 sm:border-l sm:border-slate-200 uppercase"
-            />
-            <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl text-xs sm:text-sm transition shadow-md">
-              Find Doctors
-            </button>
+            <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500 font-medium">
+              <span className="flex items-center gap-1.5">✅ 100% Verified NPI Data</span>
+              <span className="flex items-center gap-1.5">🔄 Updated Daily</span>
+              <span className="flex items-center gap-1.5">🔒 Secure & Reliable</span>
+            </div>
           </div>
-        </div>
 
-        {/* Categories */}
-        <div className="mt-10 mb-8">
+          <div className="hidden lg:block">
+            <img
+              src="/mdscout_hero_final2.jpg"
+              alt="Doctor consultation"
+              className="rounded-2xl w-full h-auto object-contain shadow-xl"
+            />
+              </div>
+        </div>
+      </section>
+
+      <main className="max-w-7xl mx-auto px-4 py-10">
+        <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold text-slate-800">
-              Browse Healthcare by Category
-            </h2>
+            <h2 className="text-sm font-bold text-slate-800">Browse by Specialty</h2>
             {showOnlyFavorites && (
               <span className="text-xs font-bold text-red-600 bg-red-50 px-2.5 py-1 rounded-md border border-red-200">
                 Showing Favorites Only
@@ -295,162 +384,353 @@ export default function Home() {
             )}
           </div>
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-            <button
+          <button
               onClick={() => setSelectedCategory("All")}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
+              className={`flex flex-col items-center justify-center min-w-[92px] px-3 py-3 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-150 border cursor-pointer hover:scale-105 active:scale-95 ${
                 selectedCategory === "All"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                  ? "bg-blue-600 text-white border-blue-600 shadow-md"
+                  : "bg-white text-slate-600 border-slate-200 hover:bg-blue-50 hover:border-blue-300 hover:shadow-md"
               }`}
             >
-              All Specialists
+              <span className="text-lg mb-1">{SPECIALTY_ICONS["All"]}</span>
+              All Specialties
             </button>
             {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
+                className={`flex flex-col items-center justify-center min-w-[92px] px-3 py-3 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-150 border cursor-pointer hover:scale-105 active:scale-95 ${
                   selectedCategory === cat
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                    ? "bg-blue-600 text-white border-blue-600 shadow-md"
+                    : "bg-white text-slate-600 border-slate-200 hover:bg-blue-50 hover:border-blue-300 hover:shadow-md"
                 }`}
               >
+                <span className="text-lg mb-1">{SPECIALTY_ICONS[cat] || "🩺"}</span>
                 {cat}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Directory Listing */}
-        {loading ? (
-          <div className="text-center py-20 text-slate-400 text-xs font-medium">
-            Loading Official NPI Registered Doctors...
-          </div>
-        ) : (
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Verified Directory ({totalCount} Found)
-              </h2>
-              <span className="text-xs text-slate-400 font-medium">
-                Page {currentPage} of {totalPages || 1}
-              </span>
+        <div className="flex flex-col lg:flex-row gap-6">
+          <aside className="lg:w-64 flex-shrink-0">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 sticky top-24">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide">Filter Results</h3>
+                <button
+                  onClick={() => {
+                    setSearchCity("");
+                    setSearchState("");
+                    setSelectedCategory("All");
+                  }}
+                  className="text-[11px] font-semibold text-blue-600 hover:underline"
+                >
+                  Clear all
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1.5">Location</label>
+                <input
+                  type="text"
+                  placeholder="City or ZIP code"
+                  value={searchCity}
+                  onChange={(e) => setSearchCity(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1.5">State</label>
+                <select
+                  value={searchState}
+                  onChange={(e) => setSearchState(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="">All States</option>
+                  {US_STATES.map((st) => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mb-2">
+                <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1.5">Specialty</label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="All">All Specialties</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
             </div>
+          </aside>
 
-            {paginatedDoctors.length > 0 ? (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {paginatedDoctors.map((doc) => {
-                    const docIdStr = String(doc.id);
-                    const isFav = favorites.includes(docIdStr);
-
-                    const doctorName = doc.first_name && doc.last_name
-                      ? `Dr. ${doc.first_name} ${doc.last_name}`
-                      : doc.first_name
-                      ? `Dr. ${doc.first_name}`
-                      : doc.name || "Specialist Doctor";
-
-                    const doctorSpecialty = doc.specialty || doc.specialization || "General Medicine";
-                    const doctorLocation = doc.location || doc.city || doc.address || "Verified Center";
-                    const doctorPhone = doc.phone || doc.phone_number || doc.contact;
-
-                    return (
-                      <div
-                        key={doc.id}
-                        className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between relative group hover:border-blue-300 transition"
-                      >
-                        <div>
-                          <div className="flex items-start justify-between gap-2 mb-3">
-                            <div>
-                              <h3
-                                onClick={() => setViewDoctorProfile(doc)}
-                                className="font-bold text-slate-900 text-base hover:text-blue-600 transition cursor-pointer hover:underline decoration-blue-500 underline-offset-2 pr-6"
-                              >
-                                {doctorName}
-                              </h3>
-                              <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-md inline-block mt-1">
-                                {doctorSpecialty}
-                              </span>
-                            </div>
-
-                            <button
-                              onClick={(e) => toggleFavorite(docIdStr, e)}
-                              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center transition border border-slate-100"
-                              title={isFav ? "Remove from Favorites" : "Add to Favorites"}
-                            >
-                              <span className={`text-base transition-transform active:scale-125 ${isFav ? "scale-110" : "opacity-40 hover:opacity-100"}`}>
-                                {isFav ? "❤️" : "🤍"}
-                              </span>
-                            </button>
-                          </div>
-
-                          <div className="text-xs text-slate-600 space-y-2 mt-4">
-                            <p className="flex items-center gap-2">
-                              <span>📍</span> {doctorLocation}
-                            </p>
-
-                            {doctorPhone && (
-                              <p className="flex items-center gap-2 font-medium text-slate-800">
-                                <span>📞</span> {doctorPhone}
-                              </p>
-                            )}
-
-                            {doc.npi_number && (
-                              <p className="flex items-center gap-1.5 font-mono text-[11px] text-slate-400">
-                                NPI: {doc.npi_number}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="mt-5 pt-4 border-t border-slate-100 flex justify-end">
-                          <button
-                            onClick={() => setSelectedDoctorForInquiry(doc)}
-                            className="text-xs font-semibold bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 px-3.5 py-2 rounded-lg transition"
-                          >
-                            Send Inquiry / Contact →
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+          <div className="flex-1" id="directory-section">
+          {loading ? (
+              <div className="text-center py-20 text-slate-400 text-xs font-medium">
+                Loading Official NPI Registered Doctors...
+              </div>
+            ) : (
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Verified Directory ({totalCount.toLocaleString()} Found)
+                  </h2>
+                  <span className="text-xs text-slate-400 font-medium">
+                    Page {currentPage} of {totalPages || 1}
+                  </span>
                 </div>
 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="mt-10 flex justify-center items-center gap-2">
-                    <button
-                      onClick={() => changePage(Math.max(currentPage - 1, 1))}
-                      disabled={currentPage === 1}
-                      className="px-3.5 py-2 border rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 transition shadow-sm"
-                    >
-                      ← Prev
-                    </button>
-                    <span className="text-xs font-bold text-slate-600 px-3">
-                      Page {currentPage} of {totalPages}
-                    </span>
-                    <button
-                      onClick={() => changePage(Math.min(currentPage + 1, totalPages))}
-                      disabled={currentPage === totalPages}
-                      className="px-3.5 py-2 border rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 transition shadow-sm"
-                    >
-                      Next →
-                    </button>
+                {paginatedDoctors.length > 0 ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {paginatedDoctors.map((doc) => {
+                        const docIdStr = String(doc.id);
+                        const isFav = favorites.includes(docIdStr);
+
+                        const doctorName = doc.first_name && doc.last_name
+                          ? `Dr. ${doc.first_name} ${doc.last_name}`
+                          : doc.first_name
+                          ? `Dr. ${doc.first_name}`
+                          : doc.name || "Specialist Doctor";
+
+                        const initials = doc.first_name && doc.last_name
+                          ? `${doc.first_name[0]}${doc.last_name[0]}`
+                          : "DR";
+
+                        const doctorSpecialty = doc.specialty || doc.specialization || "General Medicine";
+                        const doctorLocation = doc.city && doc.state ? `${doc.city}, ${doc.state}` : (doc.location || doc.address || "Verified Center");
+                        const doctorPhone = doc.phone || doc.phone_number || doc.contact;
+
+                        return (
+                          <div
+                            key={doc.id}
+                            className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between relative group hover:border-blue-300 hover:shadow-md transition"
+                          >
+                            <div>
+                              <div className="flex items-start justify-between gap-2 mb-3">
+                                <div className="flex items-start gap-3">
+                                  <div className="w-11 h-11 rounded-full bg-blue-100 text-blue-700 font-bold text-sm flex items-center justify-center flex-shrink-0">
+                                    {initials}
+                                  </div>
+                                  <div>
+                                    <h3
+                                      onClick={() => setViewDoctorProfile(doc)}
+                                      className="font-bold text-slate-900 text-sm hover:text-blue-600 transition cursor-pointer leading-tight"
+                                    >
+                                      {doctorName}
+                                    </h3>
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full mt-1">
+                                      ✓ NPI Verified
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <button
+                                  onClick={(e) => toggleFavorite(docIdStr, e)}
+                                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center transition border border-slate-100"
+                                  title={isFav ? "Remove from Favorites" : "Add to Favorites"}
+                                >
+                                  <span className={`text-base transition-transform active:scale-125 ${isFav ? "scale-110" : "opacity-40 hover:opacity-100"}`}>
+                                    {isFav ? "❤️" : "🤍"}
+                                  </span>
+                                </button>
+                              </div>
+
+                              <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-md inline-block mb-3">
+                                {doctorSpecialty}
+                              </span>
+
+                              <div className="text-xs text-slate-600 space-y-1.5">
+                                <p className="flex items-center gap-2">
+                                  <span>📍</span> {doctorLocation}
+                                </p>
+
+                                {doctorPhone && (
+                                  <p className="flex items-center gap-2 font-medium text-slate-800">
+                                    <span>📞</span> {doctorPhone}
+                                  </p>
+                                )}
+
+                                {doc.npi_number && (
+                                  <p className="flex items-center gap-1.5 font-mono text-[11px] text-slate-400">
+                                    NPI: {doc.npi_number}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="mt-4 pt-3 border-t border-slate-100 flex gap-2">
+                              <button
+                                onClick={() => setViewDoctorProfile(doc)}
+                                className="flex-1 text-xs font-semibold border border-slate-200 hover:bg-slate-50 text-slate-700 px-3 py-2 rounded-lg transition"
+                              >
+                                View Profile
+                              </button>
+                              <button
+                                onClick={() => setSelectedDoctorForInquiry(doc)}
+                                className="flex-1 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition"
+                              >
+                                Contact
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {totalPages > 1 && (
+                      <div className="mt-10 flex flex-col items-center gap-3">
+                      <div className="flex justify-center items-center gap-1.5 flex-wrap">
+                        <button
+                          onClick={() => changePage(Math.max(currentPage - 1, 1))}
+                          disabled={currentPage === 1}
+                          className="px-3.5 py-2 border rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 transition shadow-sm"
+                        >
+                          ← Previous
+                        </button>
+
+                        {getPageNumbers().map((p, idx) =>
+                          p === "..." ? (
+                            <span key={`ellipsis-${idx}`} className="px-2 text-xs text-slate-400">...</span>
+                          ) : (
+                            <button
+                              key={p}
+                              onClick={() => changePage(p as number)}
+                              className={`w-9 h-9 rounded-xl text-xs font-bold transition ${
+                                currentPage === p
+                                  ? "bg-blue-600 text-white shadow-sm"
+                                  : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                              }`}
+                            >
+                              {p}
+                            </button>
+                          )
+                        )}
+
+<button
+                          onClick={() => changePage(Math.min(currentPage + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                          className="px-3.5 py-2 border rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 transition shadow-sm"
+                        >
+                          Next →
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <span>Go to page:</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={totalPages}
+                          placeholder={String(currentPage)}
+                          className="w-16 px-2 py-1.5 border border-slate-200 rounded-lg text-center outline-none focus:ring-2 focus:ring-blue-500"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              const val = parseInt((e.target as HTMLInputElement).value);
+                              if (val >= 1 && val <= totalPages) {
+                                changePage(val);
+                                (e.target as HTMLInputElement).value = "";
+                              }
+                            }
+                          }}
+                        />
+                        <span>of {totalPages.toLocaleString()}</span>
+                      </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-12 bg-white rounded-2xl border border-slate-200 text-xs text-slate-400">
+                    {showOnlyFavorites
+                      ? "No favorite doctors added yet. Click 🤍 on any doctor card to add them!"
+                      : "No healthcare providers found matching your search criteria."}
                   </div>
                 )}
-              </>
-            ) : (
-              <div className="text-center py-12 bg-white rounded-2xl border border-slate-200 text-xs text-slate-400">
-                {showOnlyFavorites
-                  ? "No favorite doctors added yet. Click 🤍 on any doctor card to add them!"
-                  : "No healthcare providers found matching your search criteria."}
               </div>
             )}
           </div>
-        )}
+        </div>
+
+        <section className="mt-16 bg-white rounded-2xl border border-slate-200 p-8">
+          <div className="text-center max-w-2xl mx-auto mb-8">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-100/70 px-3.5 py-1 rounded-full mb-3">
+              🛡️ Trusted by Thousands
+            </span>
+            <h2 className="text-2xl font-black text-slate-900">
+              Why Healthcare Professionals & Patients Trust <span className="text-blue-600">MDScout</span>
+            </h2>
+            <p className="mt-2 text-xs text-slate-500">
+              We provide accurate, verified, and up-to-date healthcare provider information sourced directly from the official NPI registry.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className="text-2xl mb-2">✅</div>
+              <div className="text-lg font-black text-slate-900">100%</div>
+              <div className="text-[11px] text-slate-500 font-medium">NPI Verified</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl mb-2">🔄</div>
+              <div className="text-lg font-black text-slate-900">Daily</div>
+              <div className="text-[11px] text-slate-500 font-medium">Updated</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl mb-2">👥</div>
+              <div className="text-lg font-black text-slate-900">800K+</div>
+              <div className="text-[11px] text-slate-500 font-medium">Providers</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl mb-2">🔒</div>
+              <div className="text-lg font-black text-slate-900">Secure</div>
+              <div className="text-[11px] text-slate-500 font-medium">& Private</div>
+            </div>
+          </div>
+        </section>
       </main>
 
-      {/* Profile View Modal */}
+      <footer className="bg-white border-t border-slate-200 mt-16">
+        <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-2 md:grid-cols-4 gap-8 text-xs">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">🛡️</div>
+              <span className="font-extrabold text-blue-900">MDScout</span>
+            </div>
+            <p className="text-slate-500">Your trusted source for finding verified healthcare providers across the United States.</p>
+          </div>
+          <div>
+            <h4 className="font-bold text-slate-800 mb-2">Quick Links</h4>
+            <ul className="space-y-1.5 text-slate-500">
+              <li>Find Doctors</li>
+              <li>Specialties</li>
+              <li>About Us</li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-bold text-slate-800 mb-2">Resources</h4>
+            <ul className="space-y-1.5 text-slate-500">
+              <li>NPI Registry</li>
+              <li>For Patients</li>
+              <li>For Providers</li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-bold text-slate-800 mb-2">Contact</h4>
+            <ul className="space-y-1.5 text-slate-500">
+              <li>support@mdscout.io</li>
+            </ul>
+          </div>
+        </div>
+        <div className="border-t border-slate-100 py-4 text-center text-[11px] text-slate-400">
+          © 2026 MDScout.io. All rights reserved.
+        </div>
+      </footer>
+
       {viewDoctorProfile && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative border">
@@ -471,12 +751,17 @@ export default function Home() {
               <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full inline-block mt-1">
                 {viewDoctorProfile.specialty || viewDoctorProfile.specialization || "General Specialist"}
               </span>
+              <div>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full mt-2">
+                  ✓ NPI Verified
+                </span>
+              </div>
             </div>
 
             <div className="space-y-3 bg-slate-50 p-4 rounded-xl text-xs border border-slate-200 text-slate-700">
               <p className="flex justify-between border-b pb-2">
                 <span className="font-semibold text-slate-500">Location:</span>
-                <span className="font-medium text-slate-900">{viewDoctorProfile.location || viewDoctorProfile.city || "N/A"}</span>
+                <span className="font-medium text-slate-900">{viewDoctorProfile.city && viewDoctorProfile.state ? `${viewDoctorProfile.city}, ${viewDoctorProfile.state}` : "N/A"}</span>
               </p>
               <p className="flex justify-between border-b pb-2">
                 <span className="font-semibold text-slate-500">Phone Contact:</span>
@@ -504,7 +789,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Inquiry Form Modal */}
       {selectedDoctorForInquiry && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative border">
@@ -529,9 +813,7 @@ export default function Home() {
             ) : (
               <form onSubmit={handleInquirySubmit} className="space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-600 block mb-1">
-                    Your Name
-                  </label>
+                  <label className="text-xs font-semibold text-slate-600 block mb-1">Your Name</label>
                   <input
                     type="text"
                     required
@@ -543,9 +825,7 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-600 block mb-1">
-                    Your Email
-                  </label>
+                  <label className="text-xs font-semibold text-slate-600 block mb-1">Your Email</label>
                   <input
                     type="email"
                     required
@@ -557,9 +837,7 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-600 block mb-1">
-                    Inquiry Type
-                  </label>
+                  <label className="text-xs font-semibold text-slate-600 block mb-1">Inquiry Type</label>
                   <select
                     value={inquiryType}
                     onChange={(e) => setInquiryType(e.target.value)}
@@ -572,9 +850,7 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-600 block mb-1">
-                    Message
-                  </label>
+                  <label className="text-xs font-semibold text-slate-600 block mb-1">Message</label>
                   <textarea
                     required
                     rows={3}
