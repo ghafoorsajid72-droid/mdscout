@@ -37,6 +37,7 @@ export default function Home() {
 
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalCount, setTotalCount] = useState<number>(0);
+  const [showMobileMenu, setShowMobileMenu] = useState<boolean>(false);
   const itemsPerPage = 24;
 
   const [viewDoctorProfile, setViewDoctorProfile] = useState<any>(null);
@@ -262,14 +263,28 @@ export default function Home() {
 
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm">
-              🛡️
-            </div>
-            <span className="text-xl font-extrabold text-blue-900 tracking-tight">
-              MDScout<span className="text-blue-600">.io</span>
-            </span>
-          </Link>
+        <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowMobileMenu(true)}
+              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-all duration-150 cursor-pointer hover:scale-110 active:scale-90"
+              aria-label="Open menu"
+            >
+              <span className="block w-5 space-y-1.5">
+                <span className="block h-0.5 bg-slate-700 rounded"></span>
+                <span className="block h-0.5 bg-slate-700 rounded"></span>
+                <span className="block h-0.5 bg-slate-700 rounded"></span>
+              </span>
+            </button>
+
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm">
+                🛡️
+              </div>
+              <span className="text-xl font-extrabold text-blue-900 tracking-tight">
+                MDScout<span className="text-blue-600">.io</span>
+              </span>
+            </Link>
+          </div>
 
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
             <Link href="/pricing" className="hover:text-blue-600 transition-colors">Pricing</Link>
@@ -279,7 +294,17 @@ export default function Home() {
 
           <div className="flex items-center gap-3">
           <button
-              onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+              onClick={() => {
+                setShowOnlyFavorites(!showOnlyFavorites);
+                setTimeout(() => {
+                  const section = document.getElementById("directory-section");
+                  if (section) {
+                    const yOffset = -90;
+                    const y = section.getBoundingClientRect().top + window.scrollY + yOffset;
+                    window.scrollTo({ top: y, behavior: "smooth" });
+                  }
+                }, 100);
+              }}
               className={`text-xs font-bold px-3 py-2 rounded-lg transition-all duration-150 flex items-center gap-1.5 border cursor-pointer hover:scale-105 active:scale-95 ${
                 showOnlyFavorites
                   ? "bg-red-50 text-red-600 border-red-200 shadow-sm"
@@ -298,7 +323,7 @@ export default function Home() {
             {user ? (
               <button
                 onClick={handleSignOut}
-                className="text-xs font-bold text-red-600 border border-red-200 hover:bg-red-50 px-4 py-2 rounded-lg transition"
+                className="text-xs font-bold text-red-600 border border-red-200 hover:bg-red-50 px-4 py-2 rounded-lg transition-all duration-150 cursor-pointer hover:scale-105 active:scale-95"
               >
                 Sign Out
               </button>
@@ -312,9 +337,93 @@ export default function Home() {
             )}
           </div>
         </div>
-      </header>
+        </header>
 
-      <section className="bg-gradient-to-b from-blue-50/60 to-transparent border-b border-slate-100">
+{/* Mobile/Side Menu */}
+{showMobileMenu && (
+  <div className="fixed inset-0 z-50">
+    <div
+      className="absolute inset-0 bg-black/50"
+      onClick={() => setShowMobileMenu(false)}
+    ></div>
+    <div className="absolute top-0 left-0 h-full w-72 bg-white shadow-2xl flex flex-col">
+      <div className="flex items-center justify-between p-4 border-b border-slate-100">
+        <span className="font-extrabold text-blue-900 text-lg">
+          MDScout<span className="text-blue-600">.io</span>
+        </span>
+        <button
+          onClick={() => setShowMobileMenu(false)}
+          className="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 font-bold text-sm transition"
+        >
+          ✕
+        </button>
+      </div>
+
+      <nav className="flex flex-col p-4 gap-1 text-sm font-medium text-slate-700">
+        <Link href="/" onClick={() => setShowMobileMenu(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-50">
+          🏠 Find Doctors
+        </Link>
+        <button
+          onClick={() => {
+            setShowOnlyFavorites(!showOnlyFavorites);
+            setShowMobileMenu(false);
+          }}
+          className="text-left px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-all duration-150 cursor-pointer active:scale-95"
+        >
+          ❤️ Favorites ({favorites.length})
+        </button>
+        <Link href="/pricing" onClick={() => setShowMobileMenu(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-50">
+          💳 Pricing
+        </Link>
+        <Link href="/about" onClick={() => setShowMobileMenu(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-50">
+          ℹ️ About Us
+        </Link>
+        <Link href="/contact" onClick={() => setShowMobileMenu(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-50">
+          ✉️ Contact Us
+        </Link>
+
+        <div className="border-t border-slate-100 my-2"></div>
+
+        <Link href="/admin" onClick={() => setShowMobileMenu(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-50">
+          🛠️ Admin Dashboard
+        </Link>
+
+        <div className="border-t border-slate-100 my-2"></div>
+
+        <Link href="/privacy" onClick={() => setShowMobileMenu(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-50 text-xs text-slate-400">
+          Privacy Policy
+        </Link>
+        <Link href="/terms" onClick={() => setShowMobileMenu(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-50 text-xs text-slate-400">
+          Terms of Service
+        </Link>
+      </nav>
+
+      <div className="mt-auto p-4 border-t border-slate-100">
+        {user ? (
+          <button
+            onClick={() => {
+              handleSignOut();
+              setShowMobileMenu(false);
+            }}
+            className="w-full text-xs font-bold text-red-600 border border-red-200 hover:bg-red-50 px-4 py-2.5 rounded-lg transition-all duration-150 cursor-pointer hover:scale-105 active:scale-95"
+          >
+            Sign Out
+          </button>
+        ) : (
+          <Link
+            href="/login"
+            onClick={() => setShowMobileMenu(false)}
+            className="w-full block text-center text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg transition shadow-sm"
+          >
+            Sign In
+          </Link>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
+<section className="bg-gradient-to-b from-blue-50/60 to-transparent border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-12 items-center">
           <div className="max-w-2xl">
             <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-100/70 px-3.5 py-1 rounded-full mb-4">
