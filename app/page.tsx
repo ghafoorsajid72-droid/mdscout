@@ -495,7 +495,17 @@ export default function Home() {
                 maxLength={2}
                 className="w-full sm:w-32 px-4 py-2 text-xs sm:text-sm text-slate-900 outline-none rounded-xl bg-slate-50 sm:bg-white border sm:border-none border-slate-200 sm:border-l sm:border-slate-200 uppercase"
               />
-              <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-xl text-xs sm:text-sm transition shadow-md">
+              <button
+                onClick={() => {
+                  const section = document.getElementById("directory-section");
+                  if (section) {
+                    const yOffset = -90;
+                    const y = section.getBoundingClientRect().top + window.scrollY + yOffset;
+                    window.scrollTo({ top: y, behavior: "smooth" });
+                  }
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-xl text-xs sm:text-sm transition-all duration-150 cursor-pointer hover:scale-105 active:scale-95 shadow-md"
+              >
                 Find Doctors
               </button>
             </div>
