@@ -42,6 +42,11 @@ export default function Home() {
 
   const [viewDoctorProfile, setViewDoctorProfile] = useState<any>(null);
   const [selectedDoctorForInquiry, setSelectedDoctorForInquiry] = useState<any>(null);
+  const [claimingDoctor, setClaimingDoctor] = useState<any>(null);
+  const [claimNpiInput, setClaimNpiInput] = useState<string>("");
+  const [claimMessage, setClaimMessage] = useState<string>("");
+  const [submittingClaim, setSubmittingClaim] = useState<boolean>(false);
+  const [claimSuccess, setClaimSuccess] = useState<string>("");
 
   const [inquiryType, setInquiryType] = useState<string>("General Query");
   const [message, setMessage] = useState<string>("");
@@ -212,6 +217,36 @@ export default function Home() {
   };
 
   const filteredDoctors = doctors;
+
+  const handleClaimSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!claimingDoctor || !user) return;
+    setSubmittingClaim(true);
+    setClaimSuccess("");
+
+    try {
+      const { error } = await supabase.from("claim_requests").insert({
+        doctor_id: claimingDoctor.id,
+        user_id: user.id,
+        npi_entered: claimNpiInput,
+        message: claimMessage,
+      });
+
+      if (error) throw error;
+
+      setClaimSuccess("Your claim request has been submitted! We'll review it and get back to you.");
+      setClaimNpiInput("");
+      setClaimMessage("");
+      setTimeout(() => {
+        setClaimingDoctor(null);
+        setClaimSuccess("");
+      }, 2000);
+    } catch (err: any) {
+      alert("Error submitting claim: " + err.message);
+    } finally {
+      setSubmittingClaim(false);
+    }
+  };
 
     const changePage = (newPage: number) => {
       setCurrentPage(newPage);
@@ -675,15 +710,15 @@ export default function Home() {
                             </div>
 
                             <div className="mt-4 pt-3 border-t border-slate-100 flex gap-2">
-                              <button
+                            <button
                                 onClick={() => setViewDoctorProfile(doc)}
-                                className="flex-1 text-xs font-semibold border border-slate-200 hover:bg-slate-50 text-slate-700 px-3 py-2 rounded-lg transition"
+                                className="flex-1 text-xs font-semibold border border-slate-200 hover:bg-slate-50 text-slate-700 px-3 py-2 rounded-lg transition-all duration-150 cursor-pointer hover:scale-105 active:scale-95"
                               >
                                 View Profile
                               </button>
                               <button
                                 onClick={() => setSelectedDoctorForInquiry(doc)}
-                                className="flex-1 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition"
+                                className="flex-1 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-all duration-150 cursor-pointer hover:scale-105 active:scale-95"
                               >
                                 Contact
                               </button>
@@ -851,9 +886,17 @@ export default function Home() {
             </button>
 
             <div className="text-center mb-5">
-              <div className="w-16 h-16 bg-blue-100 text-blue-600 font-black text-xl rounded-full flex items-center justify-center mx-auto mb-3">
-                {viewDoctorProfile.first_name ? viewDoctorProfile.first_name[0] : "D"}
-              </div>
+              {viewDoctorProfile.photo_url ? (
+                <img
+                  src={viewDoctorProfile.photo_url}
+                  alt="Doctor"
+                  className="w-16 h-16 rounded-full object-cover mx-auto mb-3"
+                />
+              ) : (
+                <div className="w-16 h-16 bg-blue-100 text-blue-600 font-black text-xl rounded-full flex items-center justify-center mx-auto mb-3">
+                  {viewDoctorProfile.first_name ? viewDoctorProfile.first_name[0] : "D"}
+                </div>
+              )}
               <h3 className="text-xl font-bold text-slate-900">
                 {viewDoctorProfile.first_name ? `Dr. ${viewDoctorProfile.first_name} ${viewDoctorProfile.last_name || ""}` : viewDoctorProfile.name || "Doctor"}
               </h3>
@@ -867,6 +910,12 @@ export default function Home() {
               </div>
             </div>
 
+            {viewDoctorProfile.bio && (
+              <div className="mb-3 p-3 bg-blue-50 rounded-xl text-xs text-slate-700 border border-blue-100">
+                {viewDoctorProfile.bio}
+              </div>
+            )}
+
             <div className="space-y-3 bg-slate-50 p-4 rounded-xl text-xs border border-slate-200 text-slate-700">
               <p className="flex justify-between border-b pb-2">
                 <span className="font-semibold text-slate-500">Location:</span>
@@ -876,6 +925,18 @@ export default function Home() {
                 <span className="font-semibold text-slate-500">Phone Contact:</span>
                 <span className="font-medium text-slate-900">{viewDoctorProfile.phone || viewDoctorProfile.phone_number || viewDoctorProfile.contact || "N/A"}</span>
               </p>
+              {viewDoctorProfile.working_hours && (
+                <p className="flex justify-between border-b pb-2">
+                  <span className="font-semibold text-slate-500">Working Hours:</span>
+                  <span className="font-medium text-slate-900">{viewDoctorProfile.working_hours}</span>
+                </p>
+              )}
+              {viewDoctorProfile.insurance_accepted && (
+                <p className="flex justify-between border-b pb-2">
+                  <span className="font-semibold text-slate-500">Insurance:</span>
+                  <span className="font-medium text-slate-900 text-right">{viewDoctorProfile.insurance_accepted}</span>
+                </p>
+              )}
               {viewDoctorProfile.npi_number && (
                 <p className="flex justify-between">
                   <span className="font-semibold text-slate-500">NPI Number:</span>
@@ -894,6 +955,22 @@ export default function Home() {
             >
               Send Direct Inquiry →
             </button>
+
+            {!viewDoctorProfile.claimed_by && (
+              <button
+              onClick={() => {
+                if (!user) {
+                  alert("Please sign in first to claim your profile.");
+                  return;
+                }
+                setClaimingDoctor(viewDoctorProfile);
+                setViewDoctorProfile(null);
+              }}
+              className="w-full mt-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition-all duration-150 cursor-pointer hover:scale-105 active:scale-95"
+            >
+              👨‍⚕️ Is this you? Claim this profile
+            </button>
+            )}
           </div>
         </div>
       )}
@@ -982,6 +1059,70 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {claimingDoctor && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative border">
+            <button
+              onClick={() => setClaimingDoctor(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold text-sm"
+            >
+              ✕
+            </button>
+
+            <h3 className="text-lg font-bold text-slate-900 mb-1">
+              Claim Profile: {claimingDoctor.first_name ? `Dr. ${claimingDoctor.first_name} ${claimingDoctor.last_name || ""}` : "Doctor"}
+            </h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Confirm your NPI number to request ownership of this profile. Our team will verify and approve your request.
+            </p>
+
+            {claimSuccess ? (
+              <div className="p-4 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-xl border border-emerald-200 text-center">
+                {claimSuccess}
+              </div>
+            ) : (
+              <form onSubmit={handleClaimSubmit} className="space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 block mb-1">
+                    Confirm NPI Number ({claimingDoctor.npi_number})
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Re-enter the NPI number shown above"
+                    value={claimNpiInput}
+                    onChange={(e) => setClaimNpiInput(e.target.value)}
+                    className="w-full p-2.5 border rounded-lg text-xs text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 block mb-1">
+                    Additional Information (optional)
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Let us know anything that helps verify this is your profile..."
+                    value={claimMessage}
+                    onChange={(e) => setClaimMessage(e.target.value)}
+                    className="w-full p-2.5 border rounded-lg text-xs text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submittingClaim}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs transition shadow-md disabled:opacity-50"
+                >
+                  {submittingClaim ? "Submitting..." : "Submit Claim Request"}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

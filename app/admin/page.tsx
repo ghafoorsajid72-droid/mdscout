@@ -8,7 +8,8 @@ export default function AdminDashboard() {
   const [doctors, setDoctors] = useState<any[]>([]);
   const [inquiries, setInquiries] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<"doctors" | "inquiries">("doctors");
+  const [activeTab, setActiveTab] = useState<"doctors" | "inquiries" | "claims">("doctors");
+  const [claimRequests, setClaimRequests] = useState<any[]>([]);
   const [authorized, setAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -52,10 +53,25 @@ export default function AdminDashboard() {
     setLoading(true);
     const { data: docsData } = await supabase.from("doctors").select("*").order("created_at", { ascending: false });
     const { data: inqData } = await supabase.from("inquiries").select("*").order("created_at", { ascending: false });
-    
+    const { data: claimsData } = await supabase.from("claim_requests").select("*").order("created_at", { ascending: false });
+
     if (docsData) setDoctors(docsData);
     if (inqData) setInquiries(inqData);
+    if (claimsData) setClaimRequests(claimsData);
     setLoading(false);
+  };
+
+  const handleApproveClaim = async (claim: any) => {
+    if (!confirm("Approve this claim? The doctor will be linked to this profile.")) return;
+    await supabase.from("doctors").update({ claimed_by: claim.user_id }).eq("id", claim.doctor_id);
+    await supabase.from("claim_requests").update({ status: "approved" }).eq("id", claim.id);
+    fetchData();
+  };
+
+  const handleRejectClaim = async (claimId: any) => {
+    if (!confirm("Reject this claim request?")) return;
+    await supabase.from("claim_requests").update({ status: "rejected" }).eq("id", claimId);
+    fetchData();
   };
 
   const handleOpenAdd = () => {
@@ -188,6 +204,16 @@ export default function AdminDashboard() {
           >
             Patient Inquiries ({inquiries.length})
           </button>
+          <button
+            onClick={() => setActiveTab("claims")}
+            className={`px-4 py-2 font-bold text-xs border-b-2 transition ${
+              activeTab === "claims"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            Claim Requests ({claimRequests.filter((c) => c.status === "pending").length})
+          </button>
         </div>
 
         {/* Content Section */}
@@ -243,7 +269,7 @@ export default function AdminDashboard() {
               </table>
             </div>
           </div>
-        ) : (
+        ) : activeTab === "inquiries" ? (
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -268,6 +294,64 @@ export default function AdminDashboard() {
                         </span>
                       </td>
                       <td className="p-3 max-w-xs truncate text-slate-600">{inq.message}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-[11px] text-slate-500 font-bold uppercase">
+                    <th className="p-3">NPI Entered</th>
+                    <th className="p-3">Message</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3">Date</th>
+                    <th className="p-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {claimRequests.map((claim) => (
+                    <tr key={claim.id} className="hover:bg-slate-50 transition">
+                      <td className="p-3 font-mono font-bold text-slate-900">{claim.npi_entered}</td>
+                      <td className="p-3 max-w-xs truncate text-slate-600">{claim.message || "—"}</td>
+                      <td className="p-3">
+                        <span
+                          className={`font-semibold px-2 py-0.5 rounded text-[10px] ${
+                            claim.status === "approved"
+                              ? "bg-emerald-50 text-emerald-700"
+                              : claim.status === "rejected"
+                              ? "bg-red-50 text-red-700"
+                              : "bg-amber-50 text-amber-700"
+                          }`}
+                        >
+                          {claim.status}
+                        </span>
+                      </td>
+                      <td className="p-3 text-[11px] text-slate-400">
+                        {new Date(claim.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="p-3 text-right space-x-1">
+                        {claim.status === "pending" && (
+                          <>
+                            <button
+                              onClick={() => handleApproveClaim(claim)}
+                              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded text-[11px] font-semibold transition"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleRejectClaim(claim.id)}
+                              className="bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1 rounded text-[11px] font-semibold transition"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
