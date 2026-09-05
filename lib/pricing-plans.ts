@@ -21,8 +21,8 @@ export const PRICING_PLANS: PricingPlan[] = [
     id: "starter",
     name: "Starter",
     description: "For individuals getting started with provider search.",
-    monthlyPrice: 9,
-    yearlyPrice: 90,
+    monthlyPrice: 10,
+    yearlyPrice: 100,
     priceIds: {
       monthly: "pri_01m1q4r5gpfpcm0dh1wq5zhere",
       yearly: "pri_01m1q4y6am7h0wkccee4amddn1",
@@ -38,8 +38,8 @@ export const PRICING_PLANS: PricingPlan[] = [
     id: "pro",
     name: "Pro",
     description: "For power users and clinical researchers.",
-    monthlyPrice: 29,
-    yearlyPrice: 290,
+    monthlyPrice: 40,
+    yearlyPrice: 400,
     priceIds: {
       monthly: "pri_01m1q5cqcd00vdpcb8tpmr8sb9",
       yearly: "pri_01m1q5h382tj3e3xy1j8pr589w",
@@ -57,8 +57,8 @@ export const PRICING_PLANS: PricingPlan[] = [
     id: "advanced",
     name: "Advanced",
     description: "For teams building healthcare data workflows.",
-    monthlyPrice: 99,
-    yearlyPrice: 990,
+    monthlyPrice: 120,
+    yearlyPrice: 1200,
     priceIds: {
       monthly: "pri_01m1q5v0eq8fz00wbmtb1vpn8j",
       yearly: "pri_01m1q5y40qppmpwenvtqw5kyva",
