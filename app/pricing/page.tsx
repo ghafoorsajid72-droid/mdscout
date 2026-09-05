@@ -51,6 +51,13 @@ export default function PricingPage() {
       return;
     }
 
+    if (!user.email) {
+      alert(
+        "Your account is missing an email address. Please update your profile before subscribing."
+      );
+      return;
+    }
+
     setCheckoutLoading(plan.id);
 
     try {
@@ -70,7 +77,7 @@ export default function PricingPage() {
         },
         items: [{ priceId, quantity: 1 }],
         customer: {
-          email: user.email ?? undefined,
+          email: user.email,
         },
         customData: {
           supabase_user_id: user.id,
