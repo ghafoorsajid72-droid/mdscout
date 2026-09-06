@@ -24,8 +24,8 @@ export const PRICING_PLANS: PricingPlan[] = [
     monthlyPrice: 10,
     yearlyPrice: 100,
     priceIds: {
-      monthly: "pri_01m1q4r5gpfpcm0dh1wq5zhere",
-      yearly: "pri_01m1q4y6am7h0wkccee4amddn1",
+      monthly: "pri_01m1w3frfzzynbj41ham3tevz9",
+      yearly: "pri_01m1w3n6sztejvpmvw5jwets9x",
     },
     features: [
       "Basic Provider Searches",
@@ -41,8 +41,8 @@ export const PRICING_PLANS: PricingPlan[] = [
     monthlyPrice: 40,
     yearlyPrice: 400,
     priceIds: {
-      monthly: "pri_01m1q5cqcd00vdpcb8tpmr8sb9",
-      yearly: "pri_01m1q5h382tj3e3xy1j8pr589w",
+      monthly: "pri_01m1w45z6yfh7b3j7t2ej2zn01",
+      yearly: "pri_01m1w48nwjqb3rb67cfat5psq2",
     },
     features: [
       "Advanced Search Filters",
@@ -60,8 +60,8 @@ export const PRICING_PLANS: PricingPlan[] = [
     monthlyPrice: 120,
     yearlyPrice: 1200,
     priceIds: {
-      monthly: "pri_01m1q5v0eq8fz00wbmtb1vpn8j",
-      yearly: "pri_01m1q5y40qppmpwenvtqw5kyva",
+      monthly: "pri_01m1w4dcnwd7jchtrvbem36tf5",
+      yearly: "pri_01m1w4gwxmpnc3wv75g05ajpg5",
     },
     features: [
       "Everything in Pro",
