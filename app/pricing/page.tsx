@@ -177,12 +177,8 @@ export default function PricingPage() {
               <button
                 type="button"
                 onClick={() => handleSubscribe(plan)}
-                disabled={authLoading || isLoading}
-                className={`w-full py-2 px-4 rounded-lg font-medium text-sm transition-all duration-150 disabled:opacity-50 ${
-                  plan.popular
-                    ? "bg-blue-600 text-white hover:bg-blue-700"
-                    : "border border-slate-300 text-slate-700 hover:bg-slate-50"
-                }`}
+                disabled={authLoading || isLoading}className="w-full py-2 px-4 rounded-lg font-medium text-sm transition-all duration-150 disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
+                
               >
                 {isLoading
                   ? "Opening checkout..."

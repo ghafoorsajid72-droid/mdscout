@@ -1,6 +1,16 @@
+
+"use client";
+import Link from "next/link";
 export default function RefundPolicyPage() {
     return (
-      <div className="max-w-3xl mx-auto px-6 py-16">
+        <div className="max-w-3xl mx-auto px-6 py-16 relative">
+        <Link
+  href="/"
+  className="absolute top-6 right-4 w-9 h-9 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 font-bold text-sm transition border border-slate-200"
+  title="Close"
+>
+  ✕
+</Link>
         <h1 className="text-3xl font-bold mb-6">Refund Policy</h1>
         <p className="text-gray-600 mb-4">Last updated: September 2026</p>
   
