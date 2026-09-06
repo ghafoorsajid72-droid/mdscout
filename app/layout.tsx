@@ -37,8 +37,9 @@ export default function RootLayout({
           <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-slate-500">
             <p>© 2026 MDScout. All rights reserved.</p>
             <div className="flex gap-6">
-              <Link href="/privacy" className="hover:text-slate-800 transition-colors">Privacy Policy</Link>
-              <Link href="/terms" className="hover:text-slate-800 transition-colors">Terms of Service</Link>
+            <Link href="/privacy" className="hover:text-slate-800 transition-colors">Privacy Policy</Link>
+             <Link href="/terms" className="hover:text-slate-800 transition-colors">Terms of Service</Link>
+              <Link href="/refund-policy" className="hover:text-slate-800 transition-colors">Refund Policy</Link>
             </div>
           </div>
         </footer>
