@@ -11,12 +11,12 @@ const PADDLE_WEBHOOK_SECRET = process.env.PADDLE_WEBHOOK_SECRET!;
 
 // Map your Paddle Price IDs to plan names
 const PRICE_TO_PLAN: Record<string, string> = {
-  "pri_01m1q4r5gpfpcm0dh1wq5zhere": "starter",
-  "pri_01m1q4y6am7h0wkccee4amddn1": "starter",
-  "pri_01m1q5cqcd00vdpcb8tpmr8sb9": "pro",
-  "pri_01m1q5h382tj3e3xy1j8pr589w": "pro",
-  "pri_01m1q5v0eq8fz00wbmtb1vpn8j": "advanced",
-  "pri_01m1q5y40qppmpwenvtqw5kyva": "advanced",
+  "pri_01m1w3frfzzynbj41ham3tevz9": "starter",
+  "pri_01m1w3n6sztejvpmvw5jwets9x": "starter",
+  "pri_01m1w45z6yfh7b3j7t2ej2zn01": "pro",
+  "pri_01m1w48nwjqb3rb67cfat5psq2": "pro",
+  "pri_01m1w4dcnwd7jchtrvbem36tf5": "advanced",
+  "pri_01m1w4gwxmpnc3wv75g05ajpg5": "advanced",
 };
 
 function verifySignature(rawBody: string, signatureHeader: string | null): boolean {
