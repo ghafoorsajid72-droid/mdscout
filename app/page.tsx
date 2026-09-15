@@ -469,6 +469,9 @@ export default function Home() {
           </div>
 
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
+            <Link href="/hospitals" className="hover:text-blue-600 transition-colors">Hospitals</Link>
+            <Link href="/health-news" className="hover:text-blue-600 transition-colors">Health News</Link>
+            <Link href="/health-tracker" className="hover:text-blue-600 transition-colors">Health Tracker</Link>
             <Link href="/pricing" className="hover:text-blue-600 transition-colors">Pricing</Link>
             <Link href="/about" className="hover:text-blue-600 transition-colors">About</Link>
             <Link href="/contact" className="hover:text-blue-600 transition-colors">Contact</Link>
@@ -547,6 +550,12 @@ export default function Home() {
         </Link>
         <Link href="/hospitals" onClick={() => setShowMobileMenu(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-50">
           🏥 Find Hospitals
+        </Link>
+        <Link href="/health-news" onClick={() => setShowMobileMenu(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-50">
+          📰 Health News
+        </Link>
+        <Link href="/health-tracker" onClick={() => setShowMobileMenu(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-50">
+          💙 Health Tracker
         </Link>
         <button
           onClick={() => {
