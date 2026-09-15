@@ -34,11 +34,18 @@ export default function Home() {
   const [searchCity, setSearchCity] = useState<string>("");
   const [searchState, setSearchState] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
+  const [showCitySuggestions, setShowCitySuggestions] = useState<boolean>(false);
 
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [showMobileMenu, setShowMobileMenu] = useState<boolean>(false);
   const itemsPerPage = 24;
+
+  const [nearMeActive, setNearMeActive] = useState<boolean>(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationError, setLocationError] = useState<string>("");
+  const [locationLoading, setLocationLoading] = useState<boolean>(false);
 
   const [viewDoctorProfile, setViewDoctorProfile] = useState<any>(null);
   const [selectedDoctorForInquiry, setSelectedDoctorForInquiry] = useState<any>(null);
@@ -87,6 +94,57 @@ export default function Home() {
     };
   }, []);
 
+  function getDistanceMiles(lat1: number, lng1: number, lat2: number, lng2: number) {
+    const R = 3958.8; // Earth radius in miles
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function handleNearMeClick() {
+    if (nearMeActive) {
+      setNearMeActive(false);
+      setUserLocation(null);
+      setLocationError("");
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setLocationError("Location is not supported by your browser.");
+      return;
+    }
+
+    setLocationLoading(true);
+    setLocationError("");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setNearMeActive(true);
+        setLocationLoading(false);
+      },
+      (err) => {
+        setLocationLoading(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          setLocationError("Location permission denied. Please enable it in your browser settings.");
+        } else {
+          setLocationError("Could not get your location. Please try again.");
+        }
+      },
+      { enableHighAccuracy: false, timeout: 10000 }
+    );
+  }
+
   async function fetchDoctors() {
     setLoading(true);
 
@@ -111,6 +169,59 @@ export default function Home() {
       return;
     }
 
+    // NEAR ME MODE: fetch a larger batch with valid coordinates, sort client-side by distance
+    if (nearMeActive && userLocation) {
+      let nearQuery = supabase
+        .from("doctors")
+        .select("*")
+        .not("latitude", "is", null)
+        .not("longitude", "is", null)
+        .neq("latitude", 0);
+
+      if (selectedCategory !== "All") {
+        nearQuery = nearQuery.ilike("specialty", `%${selectedCategory}%`);
+      }
+      if (searchName) {
+        const nameParts = searchName.trim().replace(/^dr\.?\s+/i, "").split(/\s+/);
+        if (nameParts.length > 1) {
+          nearQuery = nearQuery
+            .ilike("first_name", `%${nameParts[0]}%`)
+            .ilike("last_name", `%${nameParts[nameParts.length - 1]}%`);
+        } else {
+          nearQuery = nearQuery.or(
+            `first_name.ilike.%${searchName}%,last_name.ilike.%${searchName}%,npi_number.ilike.%${searchName}%,specialty.ilike.%${searchName}%`
+          );
+        }
+      }
+      if (searchState) {
+        nearQuery = nearQuery.ilike("state", `%${searchState}%`);
+      }
+
+      nearQuery = nearQuery.limit(2000);
+
+      const { data, error } = await nearQuery;
+      if (!error && data) {
+        const withDistance = data
+          .map((doc) => ({
+            ...doc,
+            distanceMiles: getDistanceMiles(
+              userLocation.lat,
+              userLocation.lng,
+              doc.latitude,
+              doc.longitude
+            ),
+          }))
+          .sort((a, b) => a.distanceMiles - b.distanceMiles);
+
+        const from = (currentPage - 1) * itemsPerPage;
+        const to = from + itemsPerPage;
+        setDoctors(withDistance.slice(from, to));
+        setTotalCount(withDistance.length);
+      }
+      setLoading(false);
+      return;
+    }
+
     // NORMAL MODE: server-side filtered + paginated search
     let query = supabase.from("doctors").select("*", { count: "estimated" });
 
@@ -118,9 +229,17 @@ export default function Home() {
       query = query.ilike("specialty", `%${selectedCategory}%`);
     }
     if (searchName) {
-      query = query.or(
-        `first_name.ilike.%${searchName}%,last_name.ilike.%${searchName}%,npi_number.ilike.%${searchName}%,specialty.ilike.%${searchName}%`
-      );
+      const cleanedName = searchName.trim().replace(/^dr\.?\s+/i, "");
+      const nameParts = cleanedName.split(/\s+/).filter(Boolean);
+      if (nameParts.length > 1) {
+        query = query
+          .ilike("first_name", `%${nameParts[0]}%`)
+          .ilike("last_name", `%${nameParts[nameParts.length - 1]}%`);
+      } else {
+        query = query.or(
+          `first_name.ilike.%${cleanedName}%,last_name.ilike.%${cleanedName}%,npi_number.ilike.%${cleanedName}%,specialty.ilike.%${cleanedName}%`
+        );
+      }
     }
     if (searchCity) {
       query = query.ilike("city", `%${searchCity}%`);
@@ -143,7 +262,35 @@ export default function Home() {
 
   useEffect(() => {
     fetchDoctors();
-  }, [selectedCategory, searchName, searchCity, searchState, currentPage, showOnlyFavorites]);
+  }, [selectedCategory, searchName, searchCity, searchState, currentPage, showOnlyFavorites, nearMeActive, userLocation]);
+
+  useEffect(() => {
+    if (searchCity.trim().length < 2) {
+      setCitySuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      let cityQuery = supabase
+        .from("doctors")
+        .select("city")
+        .ilike("city", `${searchCity}%`)
+        .not("city", "is", null)
+        .limit(50);
+
+      if (searchState) {
+        cityQuery = cityQuery.eq("state", searchState);
+      }
+
+      const { data, error } = await cityQuery;
+      if (!error && data) {
+        const uniqueCities = Array.from(new Set(data.map((row) => row.city))).slice(0, 8);
+        setCitySuggestions(uniqueCities);
+      }
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [searchCity, searchState]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -395,8 +542,11 @@ export default function Home() {
       </div>
 
       <nav className="flex flex-col p-4 gap-1 text-sm font-medium text-slate-700">
-        <Link href="/" onClick={() => setShowMobileMenu(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-50">
+      <Link href="/" onClick={() => setShowMobileMenu(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-50">
           🏠 Find Doctors
+        </Link>
+        <Link href="/hospitals" onClick={() => setShowMobileMenu(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-50">
+          🏥 Find Hospitals
         </Link>
         <button
           onClick={() => {
@@ -480,13 +630,37 @@ export default function Home() {
                 onChange={(e) => setSearchName(e.target.value)}
                 className="flex-1 px-4 py-2 text-xs sm:text-sm text-slate-900 outline-none rounded-xl bg-slate-50 sm:bg-white border sm:border-none border-slate-200"
               />
-              <input
-                type="text"
-                placeholder="City (e.g., Brooklyn)"
-                value={searchCity}
-                onChange={(e) => setSearchCity(e.target.value)}
-                className="w-full sm:w-44 px-4 py-2 text-xs sm:text-sm text-slate-900 outline-none rounded-xl bg-slate-50 sm:bg-white border sm:border-none border-slate-200 sm:border-l sm:border-slate-200"
-              />
+              <div className="relative w-full sm:w-44">
+                <input
+                  type="text"
+                  placeholder="City (e.g., Brooklyn)"
+                  value={searchCity}
+                  onChange={(e) => {
+                    setSearchCity(e.target.value);
+                    setShowCitySuggestions(true);
+                  }}
+                  onFocus={() => setShowCitySuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowCitySuggestions(false), 250)}
+                  className="w-full px-4 py-2 text-xs sm:text-sm text-slate-900 placeholder:text-slate-700 placeholder:font-medium outline-none rounded-xl bg-slate-50 sm:bg-white border sm:border-none border-slate-200 sm:border-l sm:border-slate-200"
+                />
+                {showCitySuggestions && citySuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-56 overflow-y-auto">
+                    {citySuggestions.map((city) => (
+                      <button
+                        key={city}
+                        type="button"
+                        onClick={() => {
+                          setSearchCity(city);
+                          setShowCitySuggestions(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition"
+                      >
+                        📍 {city}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <input
                 type="text"
                 placeholder="STATE (E.G. NY)"
@@ -508,6 +682,22 @@ export default function Home() {
               >
                 Find Doctors
               </button>
+              <button
+                onClick={handleNearMeClick}
+                disabled={locationLoading}
+                className={`font-bold px-6 py-2 rounded-xl text-xs sm:text-sm transition-all duration-150 cursor-pointer hover:scale-105 active:scale-95 shadow-md flex items-center justify-center gap-1.5 ${
+                  nearMeActive
+                    ? "bg-blue-700 hover:bg-blue-800 text-white"
+                    : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                📍 {locationLoading ? "Locating..." : nearMeActive ? "Near Me ✓" : "Near Me"}
+              </button>
+            </div>
+            <div className="mt-2 h-4">
+              {locationError && (
+                <p className="text-xs text-red-600 font-medium">{locationError}</p>
+              )}
             </div>
 
             <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500 font-medium">
@@ -517,7 +707,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="hidden lg:block">
+          <div className="hidden lg:block relative z-0 ml-16">
             <img
               src="/mdscout_hero_final2.jpg"
               alt="Doctor consultation"
@@ -583,15 +773,37 @@ export default function Home() {
                 </button>
               </div>
 
-              <div className="mb-4">
+              <div className="mb-4 relative">
                 <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1.5">Location</label>
                 <input
                   type="text"
                   placeholder="City or ZIP code"
                   value={searchCity}
-                  onChange={(e) => setSearchCity(e.target.value)}
+                  onChange={(e) => {
+                    setSearchCity(e.target.value);
+                    setShowCitySuggestions(true);
+                  }}
+                  onFocus={() => setShowCitySuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowCitySuggestions(false), 250)}
                   className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                {showCitySuggestions && citySuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-56 overflow-y-auto">
+                    {citySuggestions.map((city) => (
+                      <button
+                        key={city}
+                        type="button"
+                        onClick={() => {
+                          setSearchCity(city);
+                          setShowCitySuggestions(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition"
+                      >
+                        📍 {city}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="mb-4">
@@ -711,9 +923,15 @@ export default function Home() {
                                   </p>
                                 )}
 
-                                {doc.npi_number && (
+{doc.npi_number && (
                                   <p className="flex items-center gap-1.5 font-mono text-[11px] text-slate-400">
                                     NPI: {doc.npi_number}
+                                  </p>
+                                )}
+
+                                {nearMeActive && typeof doc.distanceMiles === "number" && (
+                                  <p className="flex items-center gap-2 font-semibold text-emerald-600">
+                                    <span>📍</span> {doc.distanceMiles.toFixed(1)} miles away
                                   </p>
                                 )}
                               </div>
@@ -732,6 +950,16 @@ export default function Home() {
                               >
                                 Contact
                               </button>
+                              {doc.latitude && doc.latitude !== 0 && (
+                                <a
+                                  href={`https://www.google.com/maps/dir/?api=1&destination=${doc.latitude},${doc.longitude}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex-1 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-all duration-150 cursor-pointer hover:scale-105 active:scale-95 text-center"
+                                >
+                                  🧭 Directions
+                                </a>
+                              )}
                             </div>
                           </div>
                         );
