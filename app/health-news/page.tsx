@@ -105,7 +105,7 @@ export default function HealthNewsPage() {
                     </h3>
                     {item.description && (
                       <p className="text-xs text-slate-500 mt-1.5 line-clamp-2">
-                        {item.description}
+                        {item.description.replace(/<[^>]*>/g, "").trim()}
                       </p>
                     )}
                     <p className="text-[11px] text-slate-400 mt-2">
