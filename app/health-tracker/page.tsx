@@ -137,7 +137,7 @@ export default function HealthTrackerPage() {
         <div className="bg-white rounded-2xl border border-slate-200 p-8 max-w-md text-center shadow-sm">
           <h1 className="text-xl font-bold text-slate-900 mb-2">Sign in required</h1>
           <p className="text-sm text-slate-500 mb-6">Please sign in to use the Health Tracker.</p>
-          <Link href="/login" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+          <Link href="/login?redirect=/health-tracker" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
             Sign In
           </Link>
         </div>
