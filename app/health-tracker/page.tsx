@@ -31,6 +31,7 @@ export default function HealthTrackerPage() {
   const [sugarLevel, setSugarLevel] = useState("");
   const [medName, setMedName] = useState("");
   const [medTime, setMedTime] = useState("");
+  const [reminderActive, setReminderActive] = useState(false);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -94,6 +95,7 @@ export default function HealthTrackerPage() {
       } else {
         insertData.medication_name = medName;
         insertData.medication_time = medTime;
+        insertData.reminder_active = reminderActive;
       }
 
       const { error } = await supabase.from("health_records").insert(insertData);
@@ -104,6 +106,7 @@ export default function HealthTrackerPage() {
       setSugarLevel("");
       setMedName("");
       setMedTime("");
+      setReminderActive(false);
       setNotes("");
       fetchRecords();
     } catch (err: any) {
@@ -284,6 +287,18 @@ export default function HealthTrackerPage() {
                     onChange={(e) => setMedTime(e.target.value)}
                     className="w-full p-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                </div>
+                <div className="col-span-2 flex items-center gap-2 mt-1">
+                  <input
+                    type="checkbox"
+                    id="reminderActive"
+                    checked={reminderActive}
+                    onChange={(e) => setReminderActive(e.target.checked)}
+                    className="w-4 h-4 accent-blue-600"
+                  />
+                  <label htmlFor="reminderActive" className="text-xs font-semibold text-slate-600">
+                    📧 Send me a daily email reminder for this medication
+                  </label>
                 </div>
               </div>
             )}
