@@ -55,6 +55,13 @@ export default function Home() {
   const [submittingClaim, setSubmittingClaim] = useState<boolean>(false);
   const [claimSuccess, setClaimSuccess] = useState<string>("");
 
+  const [doctorReviews, setDoctorReviews] = useState<any[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState<boolean>(false);
+  const [newRating, setNewRating] = useState<number>(0);
+  const [newReviewText, setNewReviewText] = useState<string>("");
+  const [submittingReview, setSubmittingReview] = useState<boolean>(false);
+  const [reviewMessage, setReviewMessage] = useState<string>("");
+
   const [inquiryType, setInquiryType] = useState<string>("General Query");
   const [message, setMessage] = useState<string>("");
   const [senderName, setSenderName] = useState<string>("");
@@ -296,6 +303,29 @@ export default function Home() {
     setCurrentPage(1);
   }, [searchName, searchCity, searchState, selectedCategory, showOnlyFavorites]);
 
+  useEffect(() => {
+    async function fetchReviews() {
+      if (!viewDoctorProfile?.npi_number) {
+        setDoctorReviews([]);
+        return;
+      }
+      setReviewsLoading(true);
+      const { data, error } = await supabase
+        .from("doctor_reviews")
+        .select("*")
+        .eq("doctor_npi", viewDoctorProfile.npi_number)
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        setDoctorReviews(data);
+      }
+      setReviewsLoading(false);
+    }
+    fetchReviews();
+    setNewRating(0);
+    setNewReviewText("");
+    setReviewMessage("");
+  }, [viewDoctorProfile]);
+
   const toggleFavorite = (docId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     let updatedFavs: string[];
@@ -395,7 +425,46 @@ export default function Home() {
     }
   };
 
-    const changePage = (newPage: number) => {
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      alert("Please sign in first to leave a review.");
+      return;
+    }
+    if (!viewDoctorProfile?.npi_number || newRating === 0) return;
+    setSubmittingReview(true);
+    setReviewMessage("");
+
+    try {
+      const { error } = await supabase.from("doctor_reviews").upsert(
+        {
+          doctor_npi: viewDoctorProfile.npi_number,
+          user_id: user.id,
+          rating: newRating,
+          review_text: newReviewText || null,
+        },
+        { onConflict: "doctor_npi,user_id" }
+      );
+
+      if (error) throw error;
+
+      setReviewMessage("Thank you! Your review has been posted.");
+      setNewReviewText("");
+
+      const { data } = await supabase
+        .from("doctor_reviews")
+        .select("*")
+        .eq("doctor_npi", viewDoctorProfile.npi_number)
+        .order("created_at", { ascending: false });
+      if (data) setDoctorReviews(data);
+    } catch (err: any) {
+      alert("Error submitting review: " + err.message);
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const changePage = (newPage: number) => {
       setCurrentPage(newPage);
       const section = document.getElementById("directory-section");
       if (section) {
@@ -1192,6 +1261,72 @@ export default function Home() {
                 <p className="flex justify-between">
                   <span className="font-semibold text-slate-500">NPI Number:</span>
                   <span className="font-mono text-slate-900">{viewDoctorProfile.npi_number}</span>
+                </p>
+              )}
+            </div>
+
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-bold text-slate-800">Patient Reviews</h4>
+                {doctorReviews.length > 0 && (
+                  <span className="text-xs font-bold text-amber-600 flex items-center gap-1">
+                    ⭐ {(doctorReviews.reduce((sum, r) => sum + r.rating, 0) / doctorReviews.length).toFixed(1)} ({doctorReviews.length})
+                  </span>
+                )}
+              </div>
+
+              {reviewsLoading ? (
+                <p className="text-xs text-slate-400">Loading reviews...</p>
+              ) : doctorReviews.length === 0 ? (
+                <p className="text-xs text-slate-400 mb-3">No reviews yet. Be the first to review!</p>
+              ) : (
+                <div className="space-y-2 max-h-40 overflow-y-auto mb-3">
+                  {doctorReviews.map((rev) => (
+                    <div key={rev.id} className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                      <div className="flex items-center gap-1 text-amber-500 text-xs mb-1">
+                        {"⭐".repeat(rev.rating)}
+                      </div>
+                      {rev.review_text && <p className="text-xs text-slate-600">{rev.review_text}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {user ? (
+                <form onSubmit={handleReviewSubmit} className="space-y-2">
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        type="button"
+                        key={star}
+                        onClick={() => setNewRating(star)}
+                        className={`text-xl leading-none ${star <= newRating ? "text-amber-500" : "text-slate-300"}`}
+                      >
+                        ⭐
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    rows={2}
+                    placeholder="Share your experience (optional)..."
+                    value={newReviewText}
+                    onChange={(e) => setNewReviewText(e.target.value)}
+                    className="w-full p-2 border rounded-lg text-xs text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {reviewMessage && (
+                    <p className="text-xs text-emerald-600 font-semibold">{reviewMessage}</p>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={submittingReview || newRating === 0}
+                    className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 rounded-lg text-xs transition disabled:opacity-50"
+                  >
+                    {submittingReview ? "Posting..." : "Post Review"}
+                  </button>
+                </form>
+              ) : (
+                <p className="text-xs text-slate-400">
+                  <Link href="/login" className="text-blue-600 font-semibold hover:underline">Sign in</Link> to leave a review.
                 </p>
               )}
             </div>
