@@ -306,8 +306,10 @@ export default function Home() {
   useEffect(() => {
     const anyModalOpen = viewDoctorProfile || selectedDoctorForInquiry || claimingDoctor;
     document.body.style.overflow = anyModalOpen ? "hidden" : "unset";
+    document.documentElement.style.overflow = anyModalOpen ? "hidden" : "unset";
     return () => {
       document.body.style.overflow = "unset";
+      document.documentElement.style.overflow = "unset";
     };
   }, [viewDoctorProfile, selectedDoctorForInquiry, claimingDoctor]);
 
