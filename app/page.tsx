@@ -304,6 +304,16 @@ export default function Home() {
   }, [searchName, searchCity, searchState, selectedCategory, showOnlyFavorites]);
 
   useEffect(() => {
+    const anyModalOpen = viewDoctorProfile || selectedDoctorForInquiry || claimingDoctor;
+    document.body.style.overflow = anyModalOpen ? "hidden" : "unset";
+    document.documentElement.style.overflow = anyModalOpen ? "hidden" : "unset";
+    return () => {
+      document.body.style.overflow = "unset";
+      document.documentElement.style.overflow = "unset";
+    };
+  }, [viewDoctorProfile, selectedDoctorForInquiry, claimingDoctor]);
+
+  useEffect(() => {
     async function fetchReviews() {
       if (!viewDoctorProfile?.npi_number) {
         setDoctorReviews([]);
@@ -1300,7 +1310,7 @@ export default function Home() {
                         type="button"
                         key={star}
                         onClick={() => setNewRating(star)}
-                        className={`text-xl leading-none ${star <= newRating ? "text-amber-500" : "text-slate-300"}`}
+                        className={`text-2xl leading-none cursor-pointer transition-transform duration-100 hover:scale-125 active:scale-95 p-1 ${star <= newRating ? "text-amber-500" : "text-slate-300 hover:text-amber-300"}`}
                       >
                         ⭐
                       </button>
