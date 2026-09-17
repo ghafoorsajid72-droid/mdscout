@@ -46,7 +46,7 @@ export default function DoctorDashboardPage() {
       }
       setLoading(false);
     }
-    if (user) fetchDoctor();
+    fetchDoctor();
   }, [user]);
 
   async function handleSave(e: React.FormEvent) {
@@ -104,6 +104,7 @@ export default function DoctorDashboardPage() {
           <Link href="/" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
             Browse Doctors
           </Link>
+          <p className="text-[10px] text-slate-300 mt-4 break-all">Debug — Your User ID: {user?.id || "none"}</p>
         </div>
       </div>
     );
