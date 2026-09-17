@@ -46,7 +46,7 @@ export default function DoctorDashboardPage() {
       }
       setLoading(false);
     }
-    if (user) fetchDoctor();
+    fetchDoctor();
   }, [user]);
 
   async function handleSave(e: React.FormEvent) {
