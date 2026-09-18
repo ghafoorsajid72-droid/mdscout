@@ -7,6 +7,7 @@ export default function DoctorDashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [doctor, setDoctor] = useState<any>(null);
+  const [fetchError, setFetchError] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const [bio, setBio] = useState("");
@@ -36,6 +37,8 @@ export default function DoctorDashboardPage() {
         .select("*")
         .eq("claimed_by", user.id)
         .maybeSingle();
+
+      setFetchError(error);
 
       if (!error && data) {
         setDoctor(data);
@@ -105,6 +108,7 @@ export default function DoctorDashboardPage() {
             Browse Doctors
           </Link>
           <p className="text-[10px] text-slate-300 mt-4 break-all">Debug — Your User ID: {user?.id || "none"}</p>
+          <p className="text-[10px] text-red-400 mt-2 break-all">Debug — Error: {JSON.stringify(fetchError) || "none"}</p>
         </div>
       </div>
     );
