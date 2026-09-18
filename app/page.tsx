@@ -21,7 +21,16 @@ const SPECIALTY_ICONS: Record<string, string> = {
   "Dentistry": "🦷",
   "Orthopedics": "🦴",
 };
-
+const COMMON_INSURANCES = [
+  "Aetna",
+  "Blue Cross Blue Shield",
+  "Cigna",
+  "UnitedHealthcare",
+  "Medicare",
+  "Medicaid",
+  "Humana",
+  "Kaiser Permanente",
+];
 export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [doctors, setDoctors] = useState<any[]>([]);
@@ -34,6 +43,7 @@ export default function Home() {
   const [searchCity, setSearchCity] = useState<string>("");
   const [searchState, setSearchState] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [selectedInsurance, setSelectedInsurance] = useState<string>("");
   const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
   const [showCitySuggestions, setShowCitySuggestions] = useState<boolean>(false);
 
@@ -203,6 +213,9 @@ export default function Home() {
       if (searchState) {
         nearQuery = nearQuery.ilike("state", `%${searchState}%`);
       }
+      if (selectedInsurance) {
+        nearQuery = nearQuery.ilike("insurance_accepted", `%${selectedInsurance}%`);
+      }
 
       nearQuery = nearQuery.limit(2000);
 
@@ -254,6 +267,9 @@ export default function Home() {
     if (searchState) {
       query = query.ilike("state", `%${searchState}%`);
     }
+    if (selectedInsurance) {
+      query = query.ilike("insurance_accepted", `%${selectedInsurance}%`);
+    }
 
     const from = (currentPage - 1) * itemsPerPage;
     const to = from + itemsPerPage - 1;
@@ -269,7 +285,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchDoctors();
-  }, [selectedCategory, searchName, searchCity, searchState, currentPage, showOnlyFavorites, nearMeActive, userLocation]);
+  }, [selectedCategory, searchName, searchCity, searchState, selectedInsurance, currentPage, showOnlyFavorites, nearMeActive, userLocation]);
 
   useEffect(() => {
     if (searchCity.trim().length < 2) {
@@ -301,7 +317,7 @@ export default function Home() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchName, searchCity, searchState, selectedCategory, showOnlyFavorites]);
+  }, [searchName, searchCity, searchState, selectedCategory, selectedInsurance, showOnlyFavorites]);
 
   useEffect(() => {
     const anyModalOpen = viewDoctorProfile || selectedDoctorForInquiry || claimingDoctor;
@@ -858,6 +874,7 @@ export default function Home() {
                     setSearchCity("");
                     setSearchState("");
                     setSelectedCategory("All");
+                    setSelectedInsurance("");
                   }}
                   className="text-[11px] font-semibold text-blue-600 hover:underline"
                 >
@@ -922,6 +939,20 @@ export default function Home() {
                   <option value="All">All Specialties</option>
                   {categories.map((cat) => (
                     <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mb-2">
+                <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1.5">Insurance</label>
+                <select
+                  value={selectedInsurance}
+                  onChange={(e) => setSelectedInsurance(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="">Any Insurance</option>
+                  {COMMON_INSURANCES.map((ins) => (
+                    <option key={ins} value={ins}>{ins}</option>
                   ))}
                 </select>
               </div>
