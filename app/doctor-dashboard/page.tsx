@@ -36,16 +36,17 @@ export default function DoctorDashboardPage() {
         .from("doctors")
         .select("*")
         .eq("claimed_by", user.id)
-        .maybeSingle();
+        .limit(1);
 
       setFetchError(error);
 
-      if (!error && data) {
-        setDoctor(data);
-        setBio(data.bio || "");
-        setInsuranceAccepted(data.insurance_accepted || "");
-        setWorkingHours(data.working_hours || "");
-        setPhone(data.phone || data.phone_number || "");
+      if (!error && data && data.length > 0) {
+        const doc = data[0];
+        setDoctor(doc);
+        setBio(doc.bio || "");
+        setInsuranceAccepted(doc.insurance_accepted || "");
+        setWorkingHours(doc.working_hours || "");
+        setPhone(doc.phone || doc.phone_number || "");
       }
       setLoading(false);
     }
