@@ -1373,7 +1373,7 @@ export default function Home() {
 
       {selectedDoctorForInquiry && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative border">
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6 shadow-2xl relative border">
             <button
               onClick={() => setSelectedDoctorForInquiry(null)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold text-sm"
