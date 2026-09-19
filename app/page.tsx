@@ -568,6 +568,7 @@ export default function Home() {
             <Link href="/health-news" className="hover:text-blue-600 transition-colors">Health News</Link>
             <Link href="/health-tracker" className="hover:text-blue-600 transition-colors">Health Tracker</Link>
             <Link href="/appointments" className="hover:text-blue-600 transition-colors">Appointments</Link>
+            {user && <Link href="/doctor-dashboard" className="hover:text-blue-600 transition-colors">Doctor Dashboard</Link>}
             <Link href="/pricing" className="hover:text-blue-600 transition-colors">Pricing</Link>
             <Link href="/about" className="hover:text-blue-600 transition-colors">About</Link>
             <Link href="/contact" className="hover:text-blue-600 transition-colors">Contact</Link>
@@ -656,6 +657,11 @@ export default function Home() {
         <Link href="/appointments" onClick={() => setShowMobileMenu(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-50">
           📅 Appointments
         </Link>
+        {user && (
+          <Link href="/doctor-dashboard" onClick={() => setShowMobileMenu(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-50">
+            👨‍⚕️ Doctor Dashboard
+          </Link>
+        )}
         <button
           onClick={() => {
             setShowOnlyFavorites(!showOnlyFavorites);
@@ -967,8 +973,11 @@ export default function Home() {
             ) : (
               <div>
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                     Verified Directory ({totalCount.toLocaleString()} Found)
+                    {selectedInsurance && (
+                      <span className="text-blue-600"> · Accepting {selectedInsurance}</span>
+                    )}
                   </h2>
                   <span className="text-xs text-slate-400 font-medium">
                     Page {currentPage} of {totalPages || 1}
@@ -1154,6 +1163,8 @@ export default function Home() {
                   <div className="text-center py-12 bg-white rounded-2xl border border-slate-200 text-xs text-slate-400">
                     {showOnlyFavorites
                       ? "No favorite doctors added yet. Click 🤍 on any doctor card to add them!"
+                      : selectedInsurance
+                      ? `No doctors found who accept ${selectedInsurance} matching your other filters. Try a different insurance or clear filters.`
                       : "No healthcare providers found matching your search criteria."}
                   </div>
                 )}
