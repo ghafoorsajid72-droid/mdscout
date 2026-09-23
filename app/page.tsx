@@ -1,6 +1,7 @@
 "use client";
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
@@ -32,6 +33,7 @@ const COMMON_INSURANCES = [
   "Kaiser Permanente",
 ];
 export default function Home() {
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<any>(null);
   const [doctors, setDoctors] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -78,6 +80,13 @@ export default function Home() {
   const [senderEmail, setSenderEmail] = useState<string>("");
   const [submittingInquiry, setSubmittingInquiry] = useState<boolean>(false);
   const [inquirySuccess, setInquirySuccess] = useState<string>("");
+
+  useEffect(() => {
+    const specialtyParam = searchParams.get("specialty");
+    if (specialtyParam) {
+      setSelectedCategory(specialtyParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const savedFavs = localStorage.getItem("mdscout_favs");
@@ -568,6 +577,7 @@ export default function Home() {
             <Link href="/health-news" className="hover:text-blue-600 transition-colors">Health News</Link>
             <Link href="/health-tracker" className="hover:text-blue-600 transition-colors">Health Tracker</Link>
             <Link href="/appointments" className="hover:text-blue-600 transition-colors">Appointments</Link>
+            <Link href="/symptom-checker" className="hover:text-blue-600 transition-colors">Symptom Checker</Link>
             {user && <Link href="/doctor-dashboard" className="hover:text-blue-600 transition-colors">Doctor Dashboard</Link>}
             <Link href="/pricing" className="hover:text-blue-600 transition-colors">Pricing</Link>
             <Link href="/about" className="hover:text-blue-600 transition-colors">About</Link>
@@ -656,6 +666,9 @@ export default function Home() {
         </Link>
         <Link href="/appointments" onClick={() => setShowMobileMenu(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-50">
           📅 Appointments
+        </Link>
+        <Link href="/symptom-checker" onClick={() => setShowMobileMenu(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-50">
+          🩺 Symptom Checker
         </Link>
         {user && (
           <Link href="/doctor-dashboard" onClick={() => setShowMobileMenu(false)} className="px-3 py-2.5 rounded-lg hover:bg-slate-50">
@@ -813,6 +826,13 @@ export default function Home() {
                 <p className="text-xs text-red-600 font-medium">{locationError}</p>
               )}
             </div>
+
+            <Link
+              href="/symptom-checker"
+              className="mt-3 inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-4 py-2.5 rounded-xl transition-all duration-150 cursor-pointer hover:scale-105 active:scale-95"
+            >
+              🩺 Not sure which doctor to see? Try our Symptom Checker →
+            </Link>
 
             <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500 font-medium">
               <span className="flex items-center gap-1.5">✅ 100% Verified NPI Data</span>
