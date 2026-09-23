@@ -1574,14 +1574,23 @@ function HomeContent() {
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs transition shadow-md disabled:opacity-50"
                 >
                   {submittingClaim ? "Submitting..." : "Submit Claim Request"}
-                </button>
+                  </button>
               </form>
-                  </div>
-                  </div>
-                )}
-              </div>
-            );
-          }
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-slate-400 text-sm">Loading...</div>}>
+      <HomeContent />
+    </Suspense>
+  );
+}
           
           export default function Home() {
             return (
