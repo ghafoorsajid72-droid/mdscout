@@ -1,6 +1,6 @@
 "use client";
 export const dynamic = 'force-dynamic';
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
@@ -32,7 +32,7 @@ const COMMON_INSURANCES = [
   "Humana",
   "Kaiser Permanente",
 ];
-export default function Home() {
+function HomeContent() {
   const searchParams = useSearchParams();
   const [user, setUser] = useState<any>(null);
   const [doctors, setDoctors] = useState<any[]>([]);
@@ -1579,8 +1579,12 @@ export default function Home() {
             )}
           </div>
         </div>
-      )}
-    </div>
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-slate-400 text-sm">Loading...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
 
