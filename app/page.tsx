@@ -636,7 +636,7 @@ function HomeContent() {
       className="absolute inset-0 bg-black/50"
       onClick={() => setShowMobileMenu(false)}
     ></div>
-    <div className="absolute top-0 left-0 h-full w-72 bg-white shadow-2xl flex flex-col">
+    <div className="absolute top-0 left-0 h-full w-72 bg-white shadow-2xl flex flex-col overflow-y-auto">
       <div className="flex items-center justify-between p-4 border-b border-slate-100">
         <span className="font-extrabold text-blue-900 text-lg">
           MDScout<span className="text-blue-600">.io</span>
