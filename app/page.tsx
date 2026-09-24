@@ -572,7 +572,7 @@ function HomeContent() {
             </Link>
           </div>
 
-          <nav className="hidden md:flex items-center gap-5 text-sm font-medium text-slate-600 ml-6">
+          <nav className="hidden md:flex items-center gap-5 text-sm font-medium text-slate-600">
             <Link href="/hospitals" className="hover:text-blue-600 transition-colors whitespace-nowrap">Hospitals</Link>
             <Link href="/health-news" className="hover:text-blue-600 transition-colors whitespace-nowrap">Health News</Link>
             <Link href="/health-tracker" className="hover:text-blue-600 transition-colors whitespace-nowrap">Health Tracker</Link>
