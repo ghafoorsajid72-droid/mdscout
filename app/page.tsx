@@ -572,16 +572,14 @@ function HomeContent() {
             </Link>
           </div>
 
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-            <Link href="/hospitals" className="hover:text-blue-600 transition-colors">Hospitals</Link>
-            <Link href="/health-news" className="hover:text-blue-600 transition-colors">Health News</Link>
-            <Link href="/health-tracker" className="hover:text-blue-600 transition-colors">Health Tracker</Link>
-            <Link href="/appointments" className="hover:text-blue-600 transition-colors">Appointments</Link>
-            <Link href="/symptom-checker" className="hover:text-blue-600 transition-colors">Symptom Checker</Link>
-            {user && <Link href="/doctor-dashboard" className="hover:text-blue-600 transition-colors">Doctor Dashboard</Link>}
-            <Link href="/pricing" className="hover:text-blue-600 transition-colors">Pricing</Link>
-            <Link href="/about" className="hover:text-blue-600 transition-colors">About</Link>
-            <Link href="/contact" className="hover:text-blue-600 transition-colors">Contact</Link>
+          <nav className="hidden md:flex items-center gap-5 text-sm font-medium text-slate-600 ml-6">
+            <Link href="/hospitals" className="hover:text-blue-600 transition-colors whitespace-nowrap">Hospitals</Link>
+            <Link href="/health-news" className="hover:text-blue-600 transition-colors whitespace-nowrap">Health News</Link>
+            <Link href="/health-tracker" className="hover:text-blue-600 transition-colors whitespace-nowrap">Health Tracker</Link>
+            <Link href="/appointments" className="hover:text-blue-600 transition-colors whitespace-nowrap">Appointments</Link>
+            <Link href="/symptom-checker" className="hover:text-blue-600 transition-colors whitespace-nowrap">Symptom Checker</Link>
+            {user && <Link href="/doctor-dashboard" className="hover:text-blue-600 transition-colors whitespace-nowrap">Doctor Dashboard</Link>}
+            <Link href="/pricing" className="hover:text-blue-600 transition-colors whitespace-nowrap">Pricing</Link>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -1242,9 +1240,9 @@ function HomeContent() {
           <div>
             <h4 className="font-bold text-slate-800 mb-2">Quick Links</h4>
             <ul className="space-y-1.5 text-slate-500">
-              <li>Find Doctors</li>
+            <li>Find Doctors</li>
               <li>Specialties</li>
-              <li>About Us</li>
+              <li><Link href="/about" className="hover:text-blue-600 transition-colors">About Us</Link></li>
             </ul>
           </div>
           <div>
@@ -1259,6 +1257,7 @@ function HomeContent() {
             <h4 className="font-bold text-slate-800 mb-2">Contact</h4>
             <ul className="space-y-1.5 text-slate-500">
               <li>support@mdscout.io</li>
+              <li><Link href="/contact" className="hover:text-blue-600 transition-colors">Contact Us</Link></li>
             </ul>
           </div>
         </div>
