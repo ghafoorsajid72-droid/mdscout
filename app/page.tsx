@@ -574,7 +574,7 @@ function HomeContent() {
             </Link>
           </div>
 
-          <nav className="hidden md:flex items-center gap-5 text-sm font-medium text-slate-600">
+          <nav className="hidden md:flex items-center gap-4 text-sm font-medium text-slate-600">
             <Link href="/hospitals" className="hover:text-blue-600 transition-colors whitespace-nowrap">Hospitals</Link>
             <Link href="/health-news" className="hover:text-blue-600 transition-colors whitespace-nowrap">Health News</Link>
             <Link href="/health-tracker" className="hover:text-blue-600 transition-colors whitespace-nowrap">Health Tracker</Link>
@@ -607,7 +607,7 @@ function HomeContent() {
               Favorites ({favorites.length})
             </button>
 
-            <span className="hidden md:flex items-center gap-1.5 text-xs font-semibold text-slate-600 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200">
+            <span className="hidden lg:flex items-center gap-1.5 text-xs font-semibold text-slate-600 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               Official US NPI Registry
             </span>
@@ -1043,9 +1043,21 @@ function HomeContent() {
                                     >
                                       {doctorName}
                                     </h3>
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full mt-1">
-                                      ✓ NPI Verified
-                                    </span>
+                                    <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                        ✓ NPI Verified
+                                      </span>
+                                      {doc.plan_priority === 3 && (
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                                          🏆 Featured
+                                        </span>
+                                      )}
+                                      {doc.plan_priority === 2 && (
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+                                          ⭐ Pro Verified
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
 
@@ -1296,10 +1308,20 @@ function HomeContent() {
               <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full inline-block mt-1">
                 {viewDoctorProfile.specialty || viewDoctorProfile.specialization || "General Specialist"}
               </span>
-              <div>
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full mt-2">
+              <div className="flex items-center justify-center gap-1.5 mt-2 flex-wrap">
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
                   ✓ NPI Verified
                 </span>
+                {viewDoctorProfile.plan_priority === 3 && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                    🏆 Featured
+                  </span>
+                )}
+                {viewDoctorProfile.plan_priority === 2 && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+                    ⭐ Pro Verified
+                  </span>
+                )}
               </div>
             </div>
 
