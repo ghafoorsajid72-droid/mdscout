@@ -280,6 +280,8 @@ function HomeContent() {
       query = query.ilike("insurance_accepted", `%${selectedInsurance}%`);
     }
 
+    query = query.order("plan_priority", { ascending: false, nullsFirst: false });
+
     const from = (currentPage - 1) * itemsPerPage;
     const to = from + itemsPerPage - 1;
     query = query.range(from, to);
