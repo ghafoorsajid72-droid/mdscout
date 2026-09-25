@@ -609,10 +609,7 @@ function HomeContent() {
               Favorites ({favorites.length})
             </button>
 
-            <span className="hidden lg:flex items-center gap-1.5 text-xs font-semibold text-slate-600 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Official US NPI Registry
-            </span>
+
 
             {user ? (
               <button
