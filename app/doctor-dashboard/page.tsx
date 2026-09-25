@@ -7,6 +7,7 @@ export default function DoctorDashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [doctor, setDoctor] = useState<any>(null);
+  const [plan, setPlan] = useState<string>("free");
   const [fetchError, setFetchError] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -32,6 +33,16 @@ export default function DoctorDashboardPage() {
         setLoading(false);
         return;
       }
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("id", user.id)
+        .single();
+
+      if (profileData?.plan) {
+        setPlan(profileData.plan);
+      }
+
       const { data, error } = await supabase
         .from("doctors")
         .select("*")
@@ -56,6 +67,10 @@ export default function DoctorDashboardPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!doctor) return;
+    if (plan.toLowerCase() === "free") {
+      alert("Upgrade to a paid plan to edit your profile.");
+      return;
+    }
     setSaving(true);
     setSaveMessage("");
     try {
@@ -118,6 +133,8 @@ export default function DoctorDashboardPage() {
     ? `Dr. ${doctor.first_name} ${doctor.last_name}`
     : doctor.name || "Doctor";
 
+  const isPaid = plan && plan.toLowerCase() !== "free";
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
@@ -144,56 +161,83 @@ export default function DoctorDashboardPage() {
           <p className="mt-2 text-sm text-slate-500">
             Welcome, {doctorName}. Keep your profile up to date so patients can find accurate information.
           </p>
+          <div className="mt-3">
+            <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full ${isPaid ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-500 border border-slate-200"}`}>
+              {isPaid ? `✓ ${plan} Plan` : "Free Plan"}
+            </span>
+            {!isPaid && (
+              <Link href="/pricing" className="ml-2 text-xs font-bold text-blue-600 hover:underline">
+                Upgrade →
+              </Link>
+            )}
+          </div>
         </div>
       </section>
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        {!isPaid && (
+            <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-center">
+              <p className="text-sm font-bold text-amber-800 mb-1">🔒 Editing is a Paid Feature</p>
+              <p className="text-xs text-amber-700 mb-3">
+                Your profile is visible to patients for free, but editing your bio, hours, insurance, and phone requires a paid plan.
+              </p>
+              <Link
+                href="/pricing"
+                className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2 rounded-lg text-xs transition"
+              >
+                View Plans →
+              </Link>
+            </div>
+          )}
+
           <form onSubmit={handleSave} className="space-y-4">
-            <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">Bio / About</label>
-              <textarea
-                rows={3}
-                placeholder="Tell patients about your background, approach to care, and specialties..."
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                className="w-full p-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+            <fieldset disabled={!isPaid} className="space-y-4 disabled:opacity-50">
+              <div>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">Bio / About</label>
+                <textarea
+                  rows={3}
+                  placeholder="Tell patients about your background, approach to care, and specialties..."
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">Insurance Accepted</label>
-              <input
-                type="text"
-                placeholder="e.g. Aetna, Blue Cross Blue Shield, Cigna, Medicare"
-                value={insuranceAccepted}
-                onChange={(e) => setInsuranceAccepted(e.target.value)}
-                className="w-full p-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p className="text-[11px] text-slate-400 mt-1">Separate multiple insurance providers with commas.</p>
-            </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">Insurance Accepted</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Aetna, Blue Cross Blue Shield, Cigna, Medicare"
+                  value={insuranceAccepted}
+                  onChange={(e) => setInsuranceAccepted(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">Separate multiple insurance providers with commas.</p>
+              </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">Working Hours</label>
-              <input
-                type="text"
-                placeholder="e.g. Mon-Fri 9:00 AM - 5:00 PM"
-                value={workingHours}
-                onChange={(e) => setWorkingHours(e.target.value)}
-                className="w-full p-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">Working Hours</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Mon-Fri 9:00 AM - 5:00 PM"
+                  value={workingHours}
+                  onChange={(e) => setWorkingHours(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">Contact Phone</label>
-              <input
-                type="text"
-                placeholder="e.g. (555) 123-4567"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full p-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">Contact Phone</label>
+                <input
+                  type="text"
+                  placeholder="e.g. (555) 123-4567"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </fieldset>
 
             {saveMessage && (
               <div className="p-3 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-xl border border-emerald-200 text-center">
@@ -201,13 +245,15 @@ export default function DoctorDashboardPage() {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={saving}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm transition disabled:opacity-50"
-            >
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
+            {isPaid && (
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm transition disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+            )}
           </form>
         </div>
       </main>
