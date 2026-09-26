@@ -20,6 +20,7 @@ export default function HealthTrackerPage() {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [userPlan, setUserPlan] = useState<string>("free");
+  const [patientPlan, setPatientPlan] = useState<string>("free");
 
   const [records, setRecords] = useState<HealthRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,10 +44,11 @@ export default function HealthTrackerPage() {
       if (currentUser) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("plan")
+          .select("plan, patient_plan")
           .eq("id", currentUser.id)
           .single();
         setUserPlan(profile?.plan || "free");
+        setPatientPlan(profile?.patient_plan || "free");
       }
       setAuthLoading(false);
     }
@@ -56,12 +58,21 @@ export default function HealthTrackerPage() {
   async function fetchRecords() {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
+
+    const isPlus = patientPlan === "plus";
+    let query = supabase
       .from("health_records")
       .select("*")
       .eq("user_id", user.id)
-      .order("recorded_at", { ascending: false })
-      .limit(50);
+      .order("recorded_at", { ascending: false });
+
+    if (!isPlus) {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      query = query.gte("recorded_at", thirtyDaysAgo.toISOString());
+    }
+
+    const { data, error } = await query.limit(isPlus ? 500 : 50);
 
     if (!error && data) {
       setRecords(data);
@@ -71,9 +82,9 @@ export default function HealthTrackerPage() {
 
   useEffect(() => {
     if (user) fetchRecords();
-  }, [user]);
+  }, [user, patientPlan]);
 
-  const hasAccess = userPlan === "pro" || userPlan === "advanced";
+  const isPlus = patientPlan === "plus";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -148,22 +159,7 @@ export default function HealthTrackerPage() {
     );
   }
 
-  if (!hasAccess) {
-    return (
-      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 max-w-md text-center shadow-sm">
-          <div className="text-4xl mb-3">🔒</div>
-          <h1 className="text-xl font-bold text-slate-900 mb-2">Pro Feature</h1>
-          <p className="text-sm text-slate-500 mb-6">
-            Health Tracker (Blood Pressure, Blood Sugar & Medication reminders) is available on Pro and Advanced plans.
-          </p>
-          <Link href="/pricing" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
-            Upgrade to Pro
-          </Link>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans">
@@ -187,8 +183,8 @@ export default function HealthTrackerPage() {
 
       <section className="bg-gradient-to-b from-blue-50/60 to-transparent border-b border-slate-100">
         <div className="max-w-4xl mx-auto px-4 py-10">
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-100/70 px-3.5 py-1 rounded-full mb-4">
-            💙 Pro Feature
+        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-100/70 px-3.5 py-1 rounded-full mb-4">
+            {isPlus ? "✨ MDScout Plus — Unlimited History" : "💙 Free — Last 30 Days"}
           </span>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">
             Health <span className="text-blue-600">Tracker</span>
@@ -196,6 +192,15 @@ export default function HealthTrackerPage() {
           <p className="mt-2 text-sm text-slate-500">
             Track your blood pressure, blood sugar, and medication schedule.
           </p>
+          {!isPlus && (
+            <div className="mt-4 bg-white border border-blue-200 rounded-xl p-3 text-xs text-slate-600 inline-flex items-center gap-2">
+              🔒 You're viewing the last 30 days only.{" "}
+              <Link href="/plus" className="font-bold text-blue-600 hover:underline">
+                Upgrade to MDScout Plus
+              </Link>{" "}
+              for unlimited history.
+            </div>
+          )}
         </div>
       </section>
 
