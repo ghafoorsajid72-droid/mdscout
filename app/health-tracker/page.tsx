@@ -201,6 +201,11 @@ export default function HealthTrackerPage() {
               for unlimited history.
             </div>
           )}
+          <div className="mt-3">
+            <Link href="/health-vault" className="text-xs font-bold text-blue-600 hover:underline">
+              🗄️ Go to Health Vault (store medical documents) →
+            </Link>
+          </div>
         </div>
       </section>
 
