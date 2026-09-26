@@ -141,7 +141,14 @@ export default function PlusPage() {
           </div>
           <ul className="space-y-2 text-sm text-slate-600 mb-6">
             {PATIENT_PLAN.features.map((feature) => (
-              <li key={feature}>✓ {feature}</li>
+              <li key={feature}>
+                ✓{" "}
+                {feature.includes("Health Vault") ? (
+                  <Link href="/health-vault" className="hover:underline">{feature}</Link>
+                ) : (
+                  feature
+                )}
+              </li>
             ))}
           </ul>
         </div>
