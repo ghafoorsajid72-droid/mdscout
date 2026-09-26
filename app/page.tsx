@@ -833,6 +833,13 @@ function HomeContent() {
               🩺 Not sure which doctor to see? Try our Symptom Checker →
             </Link>
 
+            <Link
+              href="/health-vault"
+              className="mt-3 ml-0 sm:ml-2 inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-4 py-2.5 rounded-xl transition-all duration-150 cursor-pointer hover:scale-105 active:scale-95"
+            >
+              🗄️ Keep your family's records safe → Try Health Vault
+            </Link>
+
             <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500 font-medium">
               <span className="flex items-center gap-1.5">✅ 100% Verified NPI Data</span>
               <span className="flex items-center gap-1.5">🔄 Updated Daily</span>
