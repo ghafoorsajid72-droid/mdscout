@@ -69,6 +69,18 @@ export async function POST(req: NextRequest) {
             current_period_end: data.current_billing_period?.ends_at || null,
           })
           .eq("id", supabaseUserId);
+
+        const planPriorityMap: Record<string, number> = {
+          advanced: 3,
+          pro: 2,
+          starter: 1,
+        };
+        const newPriority = planPriorityMap[plan?.toLowerCase()] || 0;
+
+        await supabaseAdmin
+          .from("doctors")
+          .update({ plan_priority: newPriority })
+          .eq("claimed_by", supabaseUserId);
       }
     }
 
