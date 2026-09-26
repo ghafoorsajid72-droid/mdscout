@@ -19,6 +19,12 @@ const PRICE_TO_PLAN: Record<string, string> = {
   "pri_01m1w4gwxmpnc3wv75g05ajpg5": "advanced",
 };
 
+// Patient (MDScout Plus) price IDs — separate from doctor plans above
+const PATIENT_PRICE_IDS = [
+  "pri_01m3fbnj7wa4p133xhcgt4wtag",
+  "pri_01m3fbsj63kmgqnac3y7qrpt0p",
+];
+
 function verifySignature(rawBody: string, signatureHeader: string | null): boolean {
   if (!signatureHeader) return false;
   const parts = Object.fromEntries(
@@ -56,9 +62,21 @@ export async function POST(req: NextRequest) {
     ) {
       const supabaseUserId = data.custom_data?.supabase_user_id;
       const priceId = data.items?.[0]?.price?.id;
+      const isPatientPurchase = priceId ? PATIENT_PRICE_IDS.includes(priceId) : false;
       const plan = priceId ? PRICE_TO_PLAN[priceId] || "free" : "free";
 
-      if (supabaseUserId) {
+      if (supabaseUserId && isPatientPurchase) {
+        await supabaseAdmin
+          .from("profiles")
+          .update({
+            patient_plan: "plus",
+            paddle_customer_id: data.customer_id,
+            paddle_subscription_id: data.id,
+            subscription_status: data.status,
+            current_period_end: data.current_billing_period?.ends_at || null,
+          })
+          .eq("id", supabaseUserId);
+      } else if (supabaseUserId) {
         await supabaseAdmin
           .from("profiles")
           .update({
