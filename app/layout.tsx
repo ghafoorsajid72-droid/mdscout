@@ -14,8 +14,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MDScout - Medical Provider Directory & API",
-  description: "Search doctors, hospitals, and medical specialties.",
+  metadataBase: new URL("https://getmdscout.com"),
+  title: {
+    default: "MDScout - Find Doctors & Hospitals Near You",
+    template: "%s | MDScout",
+  },
+  description:
+    "Search 800,000+ NPI-verified US doctors and 70,000+ hospitals. Free provider directory, updated daily.",
+  openGraph: {
+    type: "website",
+    siteName: "MDScout",
+    title: "MDScout - Find Doctors & Hospitals Near You",
+    description:
+      "Search NPI-verified US doctors and hospitals by specialty, city, insurance, or distance.",
+    url: "/",
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({
