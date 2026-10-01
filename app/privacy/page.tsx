@@ -118,7 +118,7 @@ export default function PrivacyPolicy() {
             <li>Opt out of the sale or sharing of personal information (note: we do not sell your data)</li>
           </ul>
           <p className="text-slate-600 leading-relaxed mt-2">
-            To exercise any of these rights, email us at <span className="font-medium text-blue-600">support@getmdscout.com</span>. You can also delete most of your own data directly from your account settings and the Health Vault page at any time.
+            To exercise any of these rights, email us at <a href="mailto:support@getmdscout.com" className="font-medium text-blue-600 hover:underline">support@getmdscout.com</a>. You can also delete most of your own data directly from your account settings and the Health Vault page at any time.
           </p>
         </div>
 
@@ -146,7 +146,7 @@ export default function PrivacyPolicy() {
         <div>
           <h2 className="text-xl font-semibold mb-2">13. Contact Us</h2>
           <p className="text-slate-600 leading-relaxed">
-            If you have questions or comments about this policy, or wish to exercise your privacy rights, you may email us at <span className="font-medium text-blue-600">support@getmdscout.com</span>.
+            If you have questions or comments about this policy, or wish to exercise your privacy rights, you may email us at <a href="mailto:support@getmdscout.com" className="font-medium text-blue-600 hover:underline">support@getmdscout.com</a>.
           </p>
         </div>
       </section>
