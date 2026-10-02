@@ -20,8 +20,8 @@ export const PATIENT_PLAN: PatientPlan = {
   monthlyPrice: 6.99,
   yearlyPrice: 59.99,
   priceIds: {
-    monthly: "pri_01m3fbnj7wa4p133xhcgt4wtag",
-    yearly: "pri_01m3fbsj63kmgqnac3y7qrpt0p",
+    monthly: "pri_01m3z5947gz1ev95zpsx3v04na",
+    yearly: "pri_01m3z5fwtnb908jzcy5ztppeh8",
   },
   features: [
     "Unlimited AI Symptom Checks",

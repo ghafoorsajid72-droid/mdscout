@@ -11,18 +11,18 @@ const PADDLE_WEBHOOK_SECRET = process.env.PADDLE_WEBHOOK_SECRET!;
 
 // Map your Paddle Price IDs to plan names
 const PRICE_TO_PLAN: Record<string, string> = {
-  "pri_01m1w3frfzzynbj41ham3tevz9": "starter",
-  "pri_01m1w3n6sztejvpmvw5jwets9x": "starter",
-  "pri_01m1w45z6yfh7b3j7t2ej2zn01": "pro",
-  "pri_01m1w48nwjqb3rb67cfat5psq2": "pro",
-  "pri_01m1w4dcnwd7jchtrvbem36tf5": "advanced",
-  "pri_01m1w4gwxmpnc3wv75g05ajpg5": "advanced",
+  "pri_01m1q4r5gpfpcm0dh1wq5zhere": "starter",
+  "pri_01m1q4y6am7h0wkccee4amddn1": "starter",
+  "pri_01m1q5cqcd00vdpcb8tpmr8sb9": "pro",
+  "pri_01m1q5h382tj3e3xy1j8pr589w": "pro",
+  "pri_01m1q5v0eq8fz00wbmtb1vpn8j": "advanced",
+  "pri_01m1q5y40qppmpwenvtqw5kyva": "advanced",
 };
 
 // Patient (MDScout Plus) price IDs — separate from doctor plans above
 const PATIENT_PRICE_IDS = [
-  "pri_01m3fbnj7wa4p133xhcgt4wtag",
-  "pri_01m3fbsj63kmgqnac3y7qrpt0p",
+  "pri_01m3z5947gz1ev95zpsx3v04na",
+  "pri_01m3z5fwtnb908jzcy5ztppeh8",
 ];
 
 function verifySignature(rawBody: string, signatureHeader: string | null): boolean {
