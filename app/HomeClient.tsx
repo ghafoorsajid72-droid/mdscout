@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import Link from "next/link";
+import Link from "next/link"; import { doctorPath } from "@/lib/doctor-url";
 
 const US_STATES = [
   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
@@ -1044,7 +1044,7 @@ export default function HomeClient() {
                                       onClick={() => setViewDoctorProfile(doc)}
                                       className="font-bold text-slate-900 text-sm hover:text-blue-600 transition cursor-pointer leading-tight"
                                     >
-                                      {doctorName}
+                                      {doc.npi_number ? <Link href={doctorPath(doc)} prefetch={false} onClick={(e) => e.stopPropagation()}>{doctorName}</Link> : doctorName}
                                     </h3>
                                     <div className="flex items-center gap-1 mt-1 flex-wrap">
                                       <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
