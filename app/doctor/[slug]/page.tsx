@@ -115,8 +115,8 @@ export default async function DoctorPage({
         }}
       />
 
-      <Link href="/doctors" className="text-sm text-blue-600 hover:underline">
-        ← Back to doctors
+      <Link href="/" className="text-sm text-blue-600 hover:underline">
+      ← Back to search
       </Link>
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
