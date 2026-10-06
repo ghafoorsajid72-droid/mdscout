@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase"; import Reviews from "./Reviews"; import ContactForm from "./ContactForm"; import ClaimProfile from "./ClaimProfile";
 import {
   SITE_URL,
   doctorName,
@@ -25,8 +25,8 @@ type Doctor = {
   phone: string | null;
   bio: string | null;
   working_hours: string | null;
-  insurance_accepted: string | null;
-  photo_url: string | null;
+  insurance_accepted: string | null;photo_url: string | null; claimed_by: string | null;
+  
 };
 
 async function getDoctor(slug: string): Promise<Doctor | null> {
@@ -35,7 +35,7 @@ async function getDoctor(slug: string): Promise<Doctor | null> {
   const { data } = await supabase
     .from("doctors")
     .select(
-      "id, npi_number, first_name, last_name, specialty, state, city, address, phone, bio, working_hours, insurance_accepted, photo_url"
+      "id, npi_number, first_name, last_name, specialty, state, city, address, phone, bio, working_hours, insurance_accepted, photo_url, claimed_by"
     )
     .eq("npi_number", npi)
     .limit(1);
@@ -175,6 +175,6 @@ export default async function DoctorPage({
           )}
         </dl>
       </div>
-    </main>
+      <ContactForm doctorId={d.id} doctorName={name} /><Reviews npi={d.npi_number} />{!d.claimed_by && <ClaimProfile doctorId={d.id} doctorName={name} npi={d.npi_number} />}</main>
   );
 }
