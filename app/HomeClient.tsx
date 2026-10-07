@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link"; import { doctorPath } from "@/lib/doctor-url";
 
@@ -49,7 +49,7 @@ export default function HomeClient() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [showMobileMenu, setShowMobileMenu] = useState<boolean>(false);
-  const itemsPerPage = 24;
+  const itemsPerPage = 24; const [urlReady, setUrlReady] = useState<boolean>(false); const filterKey = [searchName, searchCity, searchState, selectedCategory, selectedInsurance, showOnlyFavorites].join("|"); const prevFilterKey = useRef<string>(filterKey); const didScroll = useRef<boolean>(false);
 
   const [nearMeActive, setNearMeActive] = useState<boolean>(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -79,7 +79,7 @@ export default function HomeClient() {
   const [inquirySuccess, setInquirySuccess] = useState<string>("");
 
   useEffect(() => {
-    const specialtyParam = new URLSearchParams(window.location.search).get("specialty");
+    const p = new URLSearchParams(window.location.search); const specialtyParam = p.get("specialty"); const q = p.get("q") || ""; const city = p.get("city") || ""; const st = p.get("state") || ""; const ins = p.get("insurance") || ""; const pg = parseInt(p.get("page") || "1", 10); prevFilterKey.current = [q, city, st, specialtyParam || "All", ins, false].join("|"); setSearchName(q); setSearchCity(city); setSearchState(st); setSelectedInsurance(ins); setCurrentPage(pg > 0 ? pg : 1); setUrlReady(true);
     if (specialtyParam) {
       setSelectedCategory(specialtyParam);
     }
@@ -292,8 +292,8 @@ export default function HomeClient() {
   }
 
   useEffect(() => {
-    fetchDoctors();
-  }, [selectedCategory, searchName, searchCity, searchState, selectedInsurance, currentPage, showOnlyFavorites, nearMeActive, userLocation]);
+    if (urlReady) fetchDoctors();
+  }, [urlReady, selectedCategory, searchName, searchCity, searchState, selectedInsurance, currentPage, showOnlyFavorites, nearMeActive, userLocation]);
 
   useEffect(() => {
     if (searchCity.trim().length < 2) {
@@ -323,10 +323,12 @@ export default function HomeClient() {
     return () => clearTimeout(timer);
   }, [searchCity, searchState]);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchName, searchCity, searchState, selectedCategory, selectedInsurance, showOnlyFavorites]);
-
+   useEffect(() => {
+    if (urlReady && prevFilterKey.current !== filterKey) {
+      prevFilterKey.current = filterKey;
+      setCurrentPage(1);
+    }
+  }, [filterKey]);
   useEffect(() => {
     const anyModalOpen = viewDoctorProfile || selectedDoctorForInquiry || claimingDoctor;
     document.body.style.overflow = anyModalOpen ? "hidden" : "unset";
@@ -428,6 +430,31 @@ export default function HomeClient() {
   };
 
   const filteredDoctors = doctors;
+
+  useEffect(() => {
+    if (!urlReady) return;
+    const p = new URLSearchParams();
+    if (searchName) p.set("q", searchName);
+    if (searchCity) p.set("city", searchCity);
+    if (searchState) p.set("state", searchState);
+    if (selectedCategory && selectedCategory !== "All") p.set("specialty", selectedCategory);
+    if (selectedInsurance) p.set("insurance", selectedInsurance);
+    if (currentPage > 1) p.set("page", String(currentPage));
+    const qs = p.toString();
+    window.history.replaceState(null, "", qs ? `/?${qs}` : "/");
+  }, [urlReady, filterKey, currentPage]);
+
+  useEffect(() => {
+    if (!urlReady || loading || didScroll.current) return;
+    didScroll.current = true;
+    try {
+      const y = sessionStorage.getItem("mdscout_scroll");
+      if (y) {
+        sessionStorage.removeItem("mdscout_scroll");
+        setTimeout(() => window.scrollTo(0, parseInt(y, 10)), 50);
+      }
+    } catch {}
+  }, [urlReady, loading]);
 
   const handleClaimSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1044,7 +1071,7 @@ export default function HomeClient() {
                                       onClick={() => setViewDoctorProfile(doc)}
                                       className="font-bold text-slate-900 text-sm hover:text-blue-600 transition cursor-pointer leading-tight"
                                     >
-                                      {doc.npi_number ? <Link href={doctorPath(doc)} prefetch={false} onClick={(e) => e.stopPropagation()}>{doctorName}</Link> : doctorName}
+                                      {doc.npi_number ? <Link href={doctorPath(doc)} prefetch={false} onClick={(e) => { e.stopPropagation(); sessionStorage.setItem("mdscout_scroll", String(window.scrollY)); sessionStorage.setItem("mdscout_last_search", window.location.pathname + window.location.search); }}>{doctorName}</Link> : doctorName}
                                     </h3>
                                     <div className="flex items-center gap-1 mt-1 flex-wrap">
                                       <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
