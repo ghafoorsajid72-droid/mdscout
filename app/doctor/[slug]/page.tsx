@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase"; import Reviews from "./Reviews"; import ContactForm from "./ContactForm"; import ClaimProfile from "./ClaimProfile";
+import BackLink from "./BackLink";
 import {
   SITE_URL,
+  titleCase,
   doctorName,
   doctorSlug,
+  doctorPath,
   npiFromSlug,
   formatPhone,
-  titleCase,
 } from "@/lib/doctor-url";
-
 export const revalidate = 86400;
 
 type Doctor = {
@@ -115,9 +116,7 @@ export default async function DoctorPage({
         }}
       />
 
-      <Link href="/" className="text-sm text-blue-600 hover:underline">
-      ← Back to search
-      </Link>
+<BackLink />
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <h1 className="text-3xl font-bold text-gray-900">{name}</h1>
