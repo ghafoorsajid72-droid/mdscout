@@ -7,6 +7,13 @@ import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
+  const getReturnTo = () => {
+    try {
+      const saved = sessionStorage.getItem("mdscout_return_to");
+      if (saved && saved.startsWith("/") && !saved.startsWith("//")) return saved;
+    } catch {}
+    return "/";
+  };
   const [view, setView] = useState<"login" | "signup" | "forgot">("login");
   
   // Form States
@@ -24,7 +31,7 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setErrorMsg("");
-    const { error } = await supabase.auth.signInWithOAuth({
+    try { sessionStorage.setItem("mdscout_after_login", Date.now() + "|" + getReturnTo()); } catch {} const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/`,
@@ -66,7 +73,7 @@ export default function LoginPage() {
         if (error) throw error;
         setSuccessMsg("Signed in successfully! Redirecting...");
         setTimeout(() => {
-          router.push("/");
+          router.push(getReturnTo());
           router.refresh();
         }, 800);
       } else if (view === "forgot") {
