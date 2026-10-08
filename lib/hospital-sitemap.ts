@@ -25,15 +25,21 @@ export type HospitalRow = {
   state: string | null;
 };
 
-export async function getHospitalChunkCount(): Promise<number> {
-  let q = supabase
-    .from("hospitals")
-    .select("id", { count: "exact", head: true })
-    .not("npi_number", "is", null);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function excludeNonHospitals(query: any): any {
+  let q = query;
   for (const w of EXCLUDE_WORDS) {
     q = q.not("name", "ilike", `%${w}%`);
   }
-  const { count } = await q;
+  return q;
+}
+
+export async function getHospitalChunkCount(): Promise<number> {
+  const base = supabase
+    .from("hospitals")
+    .select("id", { count: "exact", head: true })
+    .not("npi_number", "is", null);
+  const { count } = await excludeNonHospitals(base);
   return Math.max(1, Math.ceil((count || 0) / HOSPITAL_CHUNK_SIZE));
 }
 
@@ -43,14 +49,13 @@ export async function getHospitalChunkRows(chunk: number): Promise<HospitalRow[]
   const results = await Promise.all(
     Array.from({ length: pages }, (_, p) => {
       const from = start + p * PAGE;
-      let q = supabase
+      const base = supabase
         .from("hospitals")
         .select("npi_number, name, city, state")
         .not("npi_number", "is", null);
-      for (const w of EXCLUDE_WORDS) {
-        q = q.not("name", "ilike", `%${w}%`);
-      }
-      return q.order("id", { ascending: true }).range(from, from + PAGE - 1);
+      return excludeNonHospitals(base)
+        .order("id", { ascending: true })
+        .range(from, from + PAGE - 1);
     })
   );
   const rows: HospitalRow[] = [];
