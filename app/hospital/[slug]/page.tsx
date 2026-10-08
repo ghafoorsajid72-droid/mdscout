@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import BackLink from "./BackLink";
 import {
   SITE_URL,
   hospitalTitle,
@@ -107,9 +107,7 @@ export default async function HospitalPage({
         }}
       />
 
-      <Link href="/hospitals" className="text-sm text-blue-600 hover:underline">
-        ← Back to hospitals
-      </Link>
+      <BackLink />
 
       <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <h1 className="text-3xl font-bold text-gray-900">{name}</h1>
