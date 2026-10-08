@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import Link from "next/link";
+import Link from "next/link"; import { hospitalPath } from "@/lib/hospital-url";
 
 const US_STATES = [
   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
@@ -32,6 +32,20 @@ export default function HospitalsPage() {
 
   const [viewHospital, setViewHospital] = useState<any>(null);
   const [viewHospitalGroup, setViewHospitalGroup] = useState<any[] | null>(null);
+  const [urlReady, setUrlReady] = useState<boolean>(false);
+  const prevFilterKey = useRef<string>("");
+  const filterKey = `${searchName}|${searchCity}|${searchState}`;
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    setSearchName(p.get("q") || "");
+    setSearchCity(p.get("city") || "");
+    setSearchState(p.get("state") || "");
+    const pg = parseInt(p.get("page") || "1", 10);
+    setCurrentPage(pg > 0 ? pg : 1);
+    prevFilterKey.current = `${p.get("q") || ""}|${p.get("city") || ""}|${p.get("state") || ""}`;
+    setUrlReady(true);
+  }, []);
 
   function groupHospitals(list: any[]) {
     const groups = new Map<string, any[]>();
@@ -171,12 +185,13 @@ export default function HospitalsPage() {
   }
 
   useEffect(() => {
+    if (!urlReady) return;
     const timer = setTimeout(() => {
       fetchHospitals();
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchName, searchCity, searchState, currentPage, nearMeActive, userLocation]);
+  }, [searchName, searchCity, searchState, currentPage, nearMeActive, userLocation, urlReady]);
 
   useEffect(() => {
     if (searchCity.trim().length < 2) {
@@ -207,8 +222,22 @@ export default function HospitalsPage() {
   }, [searchCity, searchState]);
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchName, searchCity, searchState]);
+    if (urlReady && prevFilterKey.current !== filterKey) {
+      prevFilterKey.current = filterKey;
+      setCurrentPage(1);
+    }
+  }, [filterKey]);
+
+  useEffect(() => {
+    if (!urlReady) return;
+    const p = new URLSearchParams();
+    if (searchName) p.set("q", searchName);
+    if (searchCity) p.set("city", searchCity);
+    if (searchState) p.set("state", searchState);
+    if (currentPage > 1) p.set("page", String(currentPage));
+    const qs = p.toString();
+    window.history.replaceState(null, "", qs ? `/hospitals?${qs}` : "/hospitals");
+  }, [urlReady, searchName, searchCity, searchState, currentPage]);
 
   const changePage = (newPage: number) => {
     setCurrentPage(newPage);
@@ -372,10 +401,10 @@ export default function HospitalsPage() {
                           </div>
                           <div>
                             <h3
-                              onClick={() => setViewHospital(hosp)}
+                              
                               className="font-bold text-slate-900 text-sm hover:text-blue-600 transition cursor-pointer leading-tight"
                             >
-                              {hosp.name}
+                              {hosp.npi_number ? <Link href={hospitalPath(hosp)} prefetch={false} onClick={(e) => { e.stopPropagation(); sessionStorage.setItem("mdscout_last_hospitals", window.location.pathname + window.location.search); }}>{hosp.name}</Link> : hosp.name}
                             </h3>
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full mt-1">
                               ✓ NPI Verified
@@ -512,7 +541,7 @@ export default function HospitalsPage() {
                   {record.phone && (
                     <p className="text-slate-600 mt-1">📞 {record.phone}</p>
                   )}
-                  <p className="font-mono text-slate-400 mt-1">NPI: {record.npi_number}</p>
+                  <p className="font-mono text-slate-400 mt-1">NPI: {record.npi_number} {record.npi_number && <Link href={hospitalPath(record)} prefetch={false} onClick={() => sessionStorage.setItem("mdscout_last_hospitals", window.location.pathname + window.location.search)} className="ml-2 font-sans font-semibold text-blue-600 hover:underline">View page →</Link>}</p>
                 </div>
               ))}
             </div>
