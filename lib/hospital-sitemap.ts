@@ -3,8 +3,8 @@ import { supabase } from "@/lib/supabase";
 export const HOSPITAL_CHUNK_SIZE = 10000;
 const PAGE = 1000;
 
-// Naam mein inme se koi lafz ho to sitemap mein nahi jayega (ghair-hospital entries)
-const EXCLUDE_WORDS = [
+// Naam mein inme se koi lafz ho to sitemap mein nahi jayega aur page par noindex lagega
+export const EXCLUDE_WORDS = [
   "supply",
   "supplies",
   "pharmacy",
@@ -17,6 +17,11 @@ const EXCLUDE_WORDS = [
   "transport",
   "hospice",
 ];
+
+export function isNonHospitalName(name: string | null | undefined): boolean {
+  const n = (name || "").toLowerCase();
+  return EXCLUDE_WORDS.some((w) => n.includes(w));
+}
 
 export type HospitalRow = {
   npi_number: string | null;
