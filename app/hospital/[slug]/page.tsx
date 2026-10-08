@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import BackLink from "./BackLink";
+import { isNonHospitalName } from "@/lib/hospital-sitemap";
 import {
   SITE_URL,
   hospitalTitle,
@@ -55,6 +56,7 @@ export async function generateMetadata({
     description,
     alternates: { canonical: url },
     openGraph: { title, description, url, type: "website", siteName: "MDScout" },
+    robots: isNonHospitalName(h.name) ? { index: false, follow: true } : undefined,
   };
 }
 
