@@ -3,6 +3,21 @@ import { supabase } from "@/lib/supabase";
 export const HOSPITAL_CHUNK_SIZE = 10000;
 const PAGE = 1000;
 
+// Naam mein inme se koi lafz ho to sitemap mein nahi jayega (ghair-hospital entries)
+const EXCLUDE_WORDS = [
+  "supply",
+  "supplies",
+  "pharmacy",
+  "home health",
+  "home care",
+  "homecare",
+  "medical equipment",
+  "durable medical",
+  "ambulance",
+  "transport",
+  "hospice",
+];
+
 export type HospitalRow = {
   npi_number: string | null;
   name: string | null;
@@ -11,9 +26,14 @@ export type HospitalRow = {
 };
 
 export async function getHospitalChunkCount(): Promise<number> {
-  const { count } = await supabase
+  let q = supabase
     .from("hospitals")
-    .select("id", { count: "exact", head: true });
+    .select("id", { count: "exact", head: true })
+    .not("npi_number", "is", null);
+  for (const w of EXCLUDE_WORDS) {
+    q = q.not("name", "ilike", `%${w}%`);
+  }
+  const { count } = await q;
   return Math.max(1, Math.ceil((count || 0) / HOSPITAL_CHUNK_SIZE));
 }
 
@@ -23,12 +43,14 @@ export async function getHospitalChunkRows(chunk: number): Promise<HospitalRow[]
   const results = await Promise.all(
     Array.from({ length: pages }, (_, p) => {
       const from = start + p * PAGE;
-      return supabase
+      let q = supabase
         .from("hospitals")
         .select("npi_number, name, city, state")
-        .not("npi_number", "is", null)
-        .order("id", { ascending: true })
-        .range(from, from + PAGE - 1);
+        .not("npi_number", "is", null);
+      for (const w of EXCLUDE_WORDS) {
+        q = q.not("name", "ilike", `%${w}%`);
+      }
+      return q.order("id", { ascending: true }).range(from, from + PAGE - 1);
     })
   );
   const rows: HospitalRow[] = [];
