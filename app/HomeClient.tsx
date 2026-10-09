@@ -1272,44 +1272,7 @@ export default function HomeClient() {
         </section>
       </main>
 
-      <footer className="bg-white border-t border-slate-200 mt-16">
-        <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-2 md:grid-cols-4 gap-8 text-xs">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">🛡️</div>
-              <span className="font-extrabold text-blue-900">MDScout</span>
-            </div>
-            <p className="text-slate-500">Your trusted source for finding verified healthcare providers across the United States.</p>
-          </div>
-          <div>
-            <h4 className="font-bold text-slate-800 mb-2">Quick Links</h4>
-            <ul className="space-y-1.5 text-slate-500">
-            <li>Find Doctors</li>
-              <li>Specialties</li>
-              <li><Link href="/about" className="hover:text-blue-600 transition-colors">About Us</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-bold text-slate-800 mb-2">Resources</h4>
-            <ul className="space-y-1.5 text-slate-500">
-              <li>NPI Registry</li>
-              <li>For Patients</li>
-              <li>For Providers</li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-bold text-slate-800 mb-2">Contact</h4>
-            <ul className="space-y-1.5 text-slate-500">
-              <li>support@mdscout.io</li>
-              <li><Link href="/contact" className="hover:text-blue-600 transition-colors">Contact Us</Link></li>
-            </ul>
-          </div>
-        </div>
-        <div className="border-t border-slate-100 py-4 text-center text-[11px] text-slate-400">
-          © 2026 MDScout.io. All rights reserved.
-        </div>
-      </footer>
-
+     
       {viewDoctorProfile && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6 shadow-2xl relative border">
