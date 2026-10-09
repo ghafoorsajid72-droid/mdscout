@@ -4,6 +4,7 @@ import Link from "next/link";
 import "./globals.css";
 import Script from "next/script";
 import ReturnTracker from "./ReturnTracker";
+import FooterLinks from "./FooterLinks";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -64,13 +65,16 @@ export default function RootLayout({
         <main className="flex-grow">{children}</main>
 
         {/* Global Footer */}
-        <footer className="w-full border-t border-slate-200 py-6 bg-white mt-auto">
-          <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-slate-500">
-            <p>© 2026 MDScout. All rights reserved.</p>
-            <div className="flex gap-6">
-            <Link href="/privacy" className="hover:text-slate-800 transition-colors">Privacy Policy</Link>
-             <Link href="/terms" className="hover:text-slate-800 transition-colors">Terms of Service</Link>
-              <Link href="/refund-policy" className="hover:text-slate-800 transition-colors">Refund Policy</Link>
+        <footer className="w-full border-t border-slate-200 pt-6 bg-white mt-auto">
+          <FooterLinks />
+          <div className="border-t border-slate-100 py-6">
+            <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-slate-500">
+              <p>© 2026 MDScout. All rights reserved.</p>
+              <div className="flex gap-6">
+                <Link href="/privacy" className="hover:text-slate-800 transition-colors">Privacy Policy</Link>
+                <Link href="/terms" className="hover:text-slate-800 transition-colors">Terms of Service</Link>
+                <Link href="/refund-policy" className="hover:text-slate-800 transition-colors">Refund Policy</Link>
+              </div>
             </div>
           </div>
         </footer>

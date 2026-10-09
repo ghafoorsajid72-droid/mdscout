@@ -1,13 +1,15 @@
 import { SITE_URL } from "@/lib/doctor-url";
 import { getChunkCount } from "@/lib/doctor-sitemap";
 import { getHospitalChunkCount } from "@/lib/hospital-sitemap";
+import { getSpecialtyChunkCount } from "@/lib/hub-sitemap";
 
 export const revalidate = 86400;
 
 export async function GET() {
-  const [doctorChunks, hospitalChunks] = await Promise.all([
+  const [doctorChunks, hospitalChunks, specialtyChunks] = await Promise.all([
     getChunkCount(),
     getHospitalChunkCount(),
+    getSpecialtyChunkCount(),
   ]);
 
   const urls: string[] = [`${SITE_URL}/sitemap.xml`];
@@ -16,6 +18,10 @@ export async function GET() {
   }
   for (let i = 0; i < hospitalChunks; i++) {
     urls.push(`${SITE_URL}/hospital-sitemaps/sitemap/${i}.xml`);
+  }
+  const hubChunks = specialtyChunks + 2;
+  for (let i = 0; i < hubChunks; i++) {
+    urls.push(`${SITE_URL}/hub-sitemaps/sitemap/${i}.xml`);
   }
 
   const body =
