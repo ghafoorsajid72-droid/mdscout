@@ -2,7 +2,8 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/hospital-url";
 import { getSpecialtyChunkCount, getHubPaths } from "@/lib/hub-sitemap";
 
-export const revalidate = 604800;
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function generateSitemaps() {
   const n = await getSpecialtyChunkCount();
