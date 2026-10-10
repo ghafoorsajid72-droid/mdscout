@@ -3,7 +3,7 @@ import { getChunkCount } from "@/lib/doctor-sitemap";
 import { getHospitalChunkCount } from "@/lib/hospital-sitemap";
 import { getSpecialtyChunkCount } from "@/lib/hub-sitemap";
 
-export const revalidate = 86400;
+export const revalidate = 604800;
 
 export async function GET() {
   const [doctorChunks, hospitalChunks, specialtyChunks] = await Promise.all([

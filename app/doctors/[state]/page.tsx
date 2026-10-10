@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { SITE_URL } from "@/lib/hospital-url";
 import { STATE_NAMES, slugify, titleCase, stateFromSlug, stateName } from "@/lib/hub";
 
-export const revalidate = 86400;
+export const revalidate = 604800;
 
 const MIN_DOCTORS = 5;
 

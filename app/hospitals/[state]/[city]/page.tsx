@@ -13,7 +13,7 @@ import { EXCLUDE_WORDS } from "@/lib/hospital-sitemap";
 import { slugify, titleCase, stateFromSlug, stateName } from "@/lib/hub";
 import HospitalLink from "./HospitalLink";
 
-export const revalidate = 86400;
+export const revalidate = 604800;
 
 const PAGE_SIZE = 50;
 

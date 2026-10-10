@@ -12,7 +12,7 @@ import {
   npiFromHospitalSlug,
 } from "@/lib/hospital-url";
 
-export const revalidate = 86400;
+export const revalidate = 604800;
 
 type Hospital = {
   id: number;

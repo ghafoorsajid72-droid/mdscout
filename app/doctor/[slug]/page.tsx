@@ -12,7 +12,7 @@ import {
   npiFromSlug,
   formatPhone,
 } from "@/lib/doctor-url";
-export const revalidate = 86400;
+export const revalidate = 259200;
 
 type Doctor = {
   id: string;
