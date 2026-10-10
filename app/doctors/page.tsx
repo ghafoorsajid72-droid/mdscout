@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SITE_URL } from "@/lib/hospital-url";
 import { STATE_NAMES } from "@/lib/hub";
 
-export const revalidate = 86400;
+export const revalidate = 604800;
 
 export const metadata: Metadata = {
   title: { absolute: "Find Doctors by State | MDScout" },

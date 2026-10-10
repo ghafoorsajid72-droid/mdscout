@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/hospital-url";
 import { getSpecialtyChunkCount, getHubPaths } from "@/lib/hub-sitemap";
 
-export const revalidate = 86400;
+export const revalidate = 604800;
 
 export async function generateSitemaps() {
   const n = await getSpecialtyChunkCount();

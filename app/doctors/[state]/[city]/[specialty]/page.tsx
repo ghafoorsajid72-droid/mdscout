@@ -13,7 +13,7 @@ import {
 } from "@/lib/doctor-hub";
 import DoctorLink from "../DoctorLink";
 
-export const revalidate = 86400;
+export const revalidate = 604800;
 
 const PAGE_SIZE = 20;
 
