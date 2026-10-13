@@ -12,15 +12,15 @@ export default function FooterLinks() {
             🛡️
           </span>
           <span className="text-lg font-extrabold tracking-tight text-blue-900">
-            MDScout<span className="text-blue-600">.io</span>
+            MDScout
           </span>
         </Link>
         <p className="mt-3 text-slate-500">
           Your trusted source for finding verified healthcare providers across the United States.
         </p>
         <p className="mt-3 text-slate-500">
-          <a href="mailto:support@mdscout.io" className="hover:text-blue-600">
-            support@mdscout.io
+          <a href="mailto:support@getmdscout.com" className="hover:text-blue-600">
+            support@getmdscout.com
           </a>
           {" · "}
           <Link href="/contact" className="hover:text-blue-600">
