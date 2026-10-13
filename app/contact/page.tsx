@@ -51,7 +51,7 @@ export default function ContactUs() {
       </div>
 
       <div className="mt-8 text-center text-sm text-slate-500">
-        Direct Email: <span className="font-medium text-slate-700">support@mdscout.io</span>
+        Direct Email: <span className="font-medium text-slate-700">support@getmdscout.com</span>
       </div>
     </div>
   );

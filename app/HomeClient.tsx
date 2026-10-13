@@ -594,7 +594,7 @@ export default function HomeClient() {
                 🛡️
               </div>
               <span className="text-xl font-extrabold text-blue-900 tracking-tight">
-                MDScout<span className="text-blue-600">.io</span>
+                MDScout<span className="text-blue-600"></span>
               </span>
             </Link>
           </div>
@@ -664,7 +664,7 @@ export default function HomeClient() {
     <div className="absolute top-0 left-0 h-full w-72 bg-white shadow-2xl flex flex-col overflow-y-auto">
       <div className="flex items-center justify-between p-4 border-b border-slate-100">
         <span className="font-extrabold text-blue-900 text-lg">
-          MDScout<span className="text-blue-600">.io</span>
+          MDScout<span className="text-blue-600"></span>
         </span>
         <button
           onClick={() => setShowMobileMenu(false)}

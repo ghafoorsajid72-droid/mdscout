@@ -189,7 +189,7 @@ export default function HealthVaultPage() {
               🛡️
             </div>
             <span className="text-xl font-extrabold text-blue-900 tracking-tight">
-              MDScout<span className="text-blue-600">.io</span>
+              MDScout<span className="text-blue-600"></span>
             </span>
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
