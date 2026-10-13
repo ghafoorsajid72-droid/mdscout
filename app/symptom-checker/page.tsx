@@ -137,7 +137,7 @@ export default function SymptomCheckerPage() {
               🛡️
             </div>
             <span className="text-xl font-extrabold text-blue-900 tracking-tight">
-              MDScout<span className="text-blue-600">.io</span>
+              MDScout<span className="text-blue-600"></span>
             </span>
           </Link>
           <Link href="/" className="text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors">

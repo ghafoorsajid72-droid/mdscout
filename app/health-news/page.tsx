@@ -52,7 +52,7 @@ export default function HealthNewsPage() {
               🛡️
             </div>
             <span className="text-xl font-extrabold text-blue-900 tracking-tight">
-              MDScout<span className="text-blue-600">.io</span>
+              MDScout<span className="text-blue-600"></span>
             </span>
           </Link>
 
