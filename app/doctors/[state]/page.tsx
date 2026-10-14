@@ -128,16 +128,14 @@ export default async function DoctorsStatePage({
             <h2 className="mt-8 text-xl font-semibold text-gray-900">
               Most common specialties in {name}
             </h2>
-            <ul className="mt-4 flex flex-wrap gap-2">
-              {specialties.map((s) => (
-                <li
-                  key={s.label}
-                  className="rounded-full border border-gray-300 px-3 py-1 text-sm text-gray-900"
-                >
-                  {s.label} <span className="text-gray-500">({s.count.toLocaleString()})</span>
-                </li>
-              ))}
-            </ul>
+            <p className="mt-3 text-sm leading-7 text-gray-700">
+              {specialties
+                .map((s) => `${s.label} (${s.count.toLocaleString()})`)
+                .join(" · ")}
+            </p>
+            <p className="mt-2 text-sm text-gray-500">
+              Select a city below to see doctors by specialty.
+            </p>
           </>
         )}
 
