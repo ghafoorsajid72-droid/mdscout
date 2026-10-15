@@ -9,8 +9,8 @@ export default function HubHeader() {
         </Link>
 
         <nav className="flex items-center gap-4 text-sm font-medium text-gray-700">
-          <Link href="/doctors" prefetch={false} className="hover:text-blue-600">
-            Doctors
+          <Link href="/" className="hover:text-blue-600">
+            Find Doctors
           </Link>
           <Link href="/hospitals" prefetch={false} className="hover:text-blue-600">
             Hospitals
