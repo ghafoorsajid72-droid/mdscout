@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import CloseButton from "@/app/components/CloseButton";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
@@ -93,13 +94,7 @@ export default function PricingPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-12 text-slate-800 relative">
-      <Link
-        href="/"
-        className="absolute top-6 right-4 w-9 h-9 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 font-bold text-sm transition border border-slate-200"
-        title="Close"
-      >
-        ✕
-      </Link>
+           <CloseButton />
 
       <div className="text-center mb-10">
         <h1 className="text-3xl font-bold mb-3">Simple, Transparent Pricing</h1>
