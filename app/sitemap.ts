@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = "https://getmdscout.com";
   const pages = [
-    "", "/hospitals", "/health-news", "/symptom-checker",
+    "", "/hospitals", "/health-news",
     "/pricing", "/plus", "/about", "/contact",
     "/privacy", "/terms", "/refund-policy",
   ];
